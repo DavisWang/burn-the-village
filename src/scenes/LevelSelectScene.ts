@@ -12,10 +12,16 @@ import { session } from "../game/session";
 import type { LevelCatalogEntry } from "../game/types";
 import { drawLevelThumbnail, drawPanelFrame } from "../ui/board-renderer";
 import { domBridge } from "../ui/dom-bridge";
+import { getLevelCardStatsStyle, getLevelCardStatsText } from "../ui/level-select-content";
+import { clampLevelSelectScroll, getLevelSelectGridLayout, getLevelSelectSidebarLayout } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
 
 export class LevelSelectScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
+  private cardContainer!: Phaser.GameObjects.Container;
+  private cards: Phaser.GameObjects.Container[] = [];
+  private scrollOffset = 0;
+  private maxScroll = 0;
 
   constructor() {
     super("LevelSelectScene");
@@ -47,29 +53,28 @@ export class LevelSelectScene extends Phaser.Scene {
 
     this.buildCards(session.getCatalog());
     this.buildSidebar();
+    this.bindScrollControls(session.getCatalog().length);
   }
 
   private buildCards(entries: LevelCatalogEntry[]) {
-    const cardWidth = 238;
-    const cardHeight = 94;
-    const cardGapX = 20;
-    const cardGapY = 10;
-    const maxCards = 10;
+    const grid = getLevelSelectGridLayout(entries.length);
+    const statsStyle = getLevelCardStatsStyle();
+    const maskGraphics = this.make.graphics();
+    maskGraphics.fillStyle(0xffffff, 1);
+    maskGraphics.fillRect(grid.viewportX, grid.viewportY, grid.viewportWidth, grid.viewportHeight);
+    this.cardContainer = this.add.container(0, 0);
+    this.cardContainer.setMask(maskGraphics.createGeometryMask());
+    this.maxScroll = grid.maxScroll;
 
-    entries.slice(0, maxCards).forEach((entry, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
-      const x = MAP_ORIGIN.x + column * (cardWidth + cardGapX);
-      const y = MAP_ORIGIN.y + row * (cardHeight + cardGapY);
-      const sourceLabel = entry.source === "built-in" ? "BUILT-IN" : "CUSTOM";
-      const statsText = [
-        sourceLabel,
-        `GOAL ${(entry.level.completionPct * 100).toFixed(0)}%`,
-        `HAY ${entry.level.resourceBudget.hayCells}`,
-        `TNT ${entry.level.resourceBudget.tntCount}`
-      ].join("\n");
+    entries.forEach((entry, index) => {
+      const column = index % grid.columns;
+      const row = Math.floor(index / grid.columns);
+      const x = MAP_ORIGIN.x + column * (grid.cardWidth + grid.cardGapX);
+      const y = MAP_ORIGIN.y + row * (grid.cardHeight + grid.cardGapY);
+      const statsText = getLevelCardStatsText(entry);
+      const cardContainer = this.add.container(x, y);
 
-      const card = this.add.rectangle(x, y, cardWidth, cardHeight, 0x281a11).setOrigin(0);
+      const card = this.add.rectangle(0, 0, grid.cardWidth, grid.cardHeight, 0x281a11).setOrigin(0);
       card.setStrokeStyle(3, 0x6b4d26);
       card.setInteractive({ useHandCursor: true });
       card.on("pointerdown", () => {
@@ -77,10 +82,10 @@ export class LevelSelectScene extends Phaser.Scene {
       });
 
       const preview = this.add.graphics();
-      drawLevelThumbnail(preview, entry.level, x + 10, y + 10, 72);
+      drawLevelThumbnail(preview, entry.level, 10, 10, 72);
 
-      this.add
-        .text(x + 92, y + 12, entry.level.name, {
+      const title = this.add
+        .text(92, 12, entry.level.name, {
           fontFamily: "Courier New",
           fontSize: "15px",
           color: "#fce7b2",
@@ -90,27 +95,36 @@ export class LevelSelectScene extends Phaser.Scene {
         })
         .setOrigin(0, 0);
 
-      this.add
+      const stats = this.add
         .text(
-          x + 92,
-          y + 38,
+          92,
+          38,
           statsText,
           {
             fontFamily: "Courier New",
-            fontSize: "11px",
+            fontSize: statsStyle.fontSize,
             color: "#bfa16e",
             resolution: 2,
-            lineSpacing: 2,
+            lineSpacing: statsStyle.lineSpacing,
             wordWrap: { width: 132 }
           }
         )
         .setOrigin(0, 0);
+
+      cardContainer.add([card, preview, title, stats]);
+      cardContainer.setData("baseY", y);
+      this.cards.push(cardContainer);
+      this.cardContainer.add(cardContainer);
     });
+
+    this.updateCardScroll();
   }
 
   private buildSidebar() {
+    const layout = getLevelSelectSidebarLayout();
+
     this.add
-      .text(SIDEBAR_ORIGIN.x, SIDEBAR_ORIGIN.y + 8, "PLAYABLE LEVELS", {
+      .text(layout.headingX, SIDEBAR_ORIGIN.y + 8, "PLAYABLE LEVELS", {
         fontFamily: "Courier New",
         fontSize: "18px",
         color: "#fce7b2",
@@ -121,7 +135,7 @@ export class LevelSelectScene extends Phaser.Scene {
 
     this.add
       .text(
-        SIDEBAR_ORIGIN.x,
+        layout.bodyX,
         SIDEBAR_ORIGIN.y + 46,
         "Pick a built-in level or import a JSON file.\nCustom levels stay in memory for this session and can be re-exported from the editor.",
         {
@@ -129,37 +143,37 @@ export class LevelSelectScene extends Phaser.Scene {
           fontSize: "14px",
           color: "#bfa16e",
           resolution: 2,
-          wordWrap: { width: 180 }
+          wordWrap: { width: layout.contentWidth }
         }
       )
       .setOrigin(0, 0);
 
     new PixelButton({
       scene: this,
-      x: SIDEBAR_ORIGIN.x,
-      y: SIDEBAR_ORIGIN.y + 152,
-      width: 180,
-      height: 52,
+      x: layout.contentX,
+      y: layout.firstButtonY,
+      width: layout.contentWidth,
+      height: layout.buttonHeight,
       label: "IMPORT JSON",
       onClick: () => void this.importLevel()
     });
 
     new PixelButton({
       scene: this,
-      x: SIDEBAR_ORIGIN.x,
-      y: SIDEBAR_ORIGIN.y + 218,
-      width: 180,
-      height: 52,
+      x: layout.contentX,
+      y: layout.secondButtonY,
+      width: layout.contentWidth,
+      height: layout.buttonHeight,
       label: "EDITOR",
       onClick: () => this.scene.start("EditorScene")
     });
 
     new PixelButton({
       scene: this,
-      x: SIDEBAR_ORIGIN.x,
-      y: SIDEBAR_ORIGIN.y + 284,
-      width: 180,
-      height: 52,
+      x: layout.contentX,
+      y: layout.thirdButtonY,
+      width: layout.contentWidth,
+      height: layout.buttonHeight,
       label: "BACK",
       onClick: () => this.scene.start("MenuScene")
     });
@@ -178,5 +192,57 @@ export class LevelSelectScene extends Phaser.Scene {
     } catch (error) {
       this.statusText.setText(error instanceof Error ? error.message : "Import failed.");
     }
+  }
+
+  private bindScrollControls(entryCount: number) {
+    const grid = getLevelSelectGridLayout(entryCount);
+    const rowStep = grid.cardHeight + grid.cardGapY;
+    const pageStep = grid.viewportHeight - rowStep;
+    const onWheel = (pointer: Phaser.Input.Pointer, _objects: Phaser.GameObjects.GameObject[], _dx: number, dy: number) => {
+      if (
+        pointer.worldX < grid.viewportX ||
+        pointer.worldX > grid.viewportX + grid.viewportWidth ||
+        pointer.worldY < grid.viewportY ||
+        pointer.worldY > grid.viewportY + grid.viewportHeight
+      ) {
+        return;
+      }
+      this.setScrollOffset(this.scrollOffset + dy * 0.75, entryCount);
+    };
+    const onUp = () => this.setScrollOffset(this.scrollOffset - rowStep, entryCount);
+    const onDown = () => this.setScrollOffset(this.scrollOffset + rowStep, entryCount);
+    const onPageUp = () => this.setScrollOffset(this.scrollOffset - pageStep, entryCount);
+    const onPageDown = () => this.setScrollOffset(this.scrollOffset + pageStep, entryCount);
+
+    this.input.on("wheel", onWheel);
+    this.input.keyboard?.on("keydown-UP", onUp);
+    this.input.keyboard?.on("keydown-DOWN", onDown);
+    this.input.keyboard?.on("keydown-PAGEUP", onPageUp);
+    this.input.keyboard?.on("keydown-PAGEDOWN", onPageDown);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.off("wheel", onWheel);
+      this.input.keyboard?.off("keydown-UP", onUp);
+      this.input.keyboard?.off("keydown-DOWN", onDown);
+      this.input.keyboard?.off("keydown-PAGEUP", onPageUp);
+      this.input.keyboard?.off("keydown-PAGEDOWN", onPageDown);
+    });
+  }
+
+  private setScrollOffset(nextOffset: number, entryCount: number) {
+    this.scrollOffset = clampLevelSelectScroll(entryCount, nextOffset);
+    this.updateCardScroll();
+  }
+
+  private updateCardScroll() {
+    const grid = getLevelSelectGridLayout(this.cards.length);
+    this.cards.forEach((card) => {
+      const baseY = card.getData("baseY") as number;
+      const nextY = baseY - this.scrollOffset;
+      card.y = nextY;
+      const visible =
+        nextY + grid.cardHeight >= grid.viewportY && nextY <= grid.viewportY + grid.viewportHeight;
+      card.setVisible(visible);
+    });
   }
 }

@@ -14,13 +14,20 @@ import {
   SIDEBAR_ORIGIN,
   SIDEBAR_WIDTH
 } from "../game/constants";
-import { cloneLevel, isLevelValid, placeStructure, removeAt, toggleFireSource } from "../game/editor-draft";
+import { cloneLevel, placeStructure, removeAt, toggleFireSource } from "../game/editor-draft";
 import { parseLevelFile, serializeLevel, validateLevel } from "../game/level-io";
 import { session } from "../game/session";
 import { getStructureStats } from "../game/structureCatalog";
 import type { EditorTool, LevelDefinition, Point } from "../game/types";
 import { drawLevelBoard, drawPanelFrame } from "../ui/board-renderer";
 import { domBridge } from "../ui/dom-bridge";
+import { getEditorBottomStats } from "../ui/hud-content";
+import {
+  getEditorBottomActionLayout,
+  getEditorBottomControlLayout,
+  getEditorHudStatSlots,
+  getEditorSidebarLayout
+} from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
 
 function slugify(value: string): string {
@@ -32,22 +39,24 @@ function slugify(value: string): string {
 }
 
 export class EditorScene extends Phaser.Scene {
+  private static readonly MAX_RESOURCE_INPUT = 999;
   private draft!: LevelDefinition;
   private boardGraphics!: Phaser.GameObjects.Graphics;
   private overlayGraphics!: Phaser.GameObjects.Graphics;
-  private infoText!: Phaser.GameObjects.Text;
-  private statusText!: Phaser.GameObjects.Text;
-  private nameOverlayText!: Phaser.GameObjects.Text;
+  private overlayText!: Phaser.GameObjects.Text;
   private tool: EditorTool = "fire";
   private hoverCells: Point[] = [];
   private toolButtons: Record<EditorTool, PixelButton> | null = null;
+  private budgetButtons: Record<"hay" | "tnt", PixelButton> | null = null;
   private statTexts!: {
     name: Phaser.GameObjects.Text;
-    hay: Phaser.GameObjects.Text;
-    tnt: Phaser.GameObjects.Text;
     goal: Phaser.GameObjects.Text;
   };
+  private hudStatTexts!: Record<string, Phaser.GameObjects.Text>;
   private naming = false;
+  private budgetEntry: "hay" | "tnt" | null = null;
+  private transientMessage: string | null = null;
+  private transientMessageTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor() {
     super("EditorScene");
@@ -69,28 +78,7 @@ export class EditorScene extends Phaser.Scene {
 
     this.boardGraphics = this.add.graphics();
     this.overlayGraphics = this.add.graphics();
-    this.infoText = this.add
-      .text(SIDEBAR_ORIGIN.x + 18, SIDEBAR_ORIGIN.y + 334, "", {
-        fontFamily: "Courier New",
-        fontSize: "20px",
-        color: "#fce7b2",
-        fontStyle: "bold",
-        resolution: 2,
-        lineSpacing: 8,
-        wordWrap: { width: SIDEBAR_WIDTH - 36 }
-      })
-      .setOrigin(0, 0);
-    this.statusText = this.add
-      .text(HUD_ORIGIN.x + 24, HUD_ORIGIN.y + 120, "", {
-        fontFamily: "Courier New",
-        fontSize: "18px",
-        color: "#83dd4c",
-        fontStyle: "bold",
-        resolution: 2,
-        wordWrap: { width: PANEL_WIDTH - 48 }
-      })
-      .setOrigin(0, 0);
-    this.nameOverlayText = this.add
+    this.overlayText = this.add
       .text(CANVAS_CENTER_X, 330, "", {
         fontFamily: "Courier New",
         fontSize: "20px",
@@ -109,19 +97,14 @@ export class EditorScene extends Phaser.Scene {
   }
 
   private buildSidebar() {
-    const sidebarInset = 18;
-    const contentX = SIDEBAR_ORIGIN.x + sidebarInset;
-    const contentWidth = SIDEBAR_WIDTH - sidebarInset * 2;
-    const actionGap = 6;
-    const actionWidth = Math.floor((contentWidth - actionGap) / 2);
-    const actionX2 = contentX + actionWidth + actionGap;
+    const layout = getEditorSidebarLayout();
 
     const makeToolButton = (tool: EditorTool, label: string, row: number) =>
       new PixelButton({
         scene: this,
-        x: contentX,
+        x: layout.contentX,
         y: SIDEBAR_ORIGIN.y + 20 + row * 54,
-        width: contentWidth,
+        width: layout.contentWidth,
         height: 46,
         label,
         fontSize: "24px",
@@ -138,63 +121,11 @@ export class EditorScene extends Phaser.Scene {
       hall: makeToolButton("hall", "HALL", 3),
       erase: makeToolButton("erase", "ERASE", 4)
     };
-
-    new PixelButton({
-      scene: this,
-      x: contentX,
-      y: SIDEBAR_ORIGIN.y + 406,
-      width: actionWidth,
-      height: 38,
-      label: "RENAME",
-      fontSize: "19px",
-      onClick: () => this.beginNameEntry()
-    });
-    new PixelButton({
-      scene: this,
-      x: actionX2,
-      y: SIDEBAR_ORIGIN.y + 406,
-      width: actionWidth,
-      height: 38,
-      label: "IMPORT",
-      fontSize: "19px",
-      onClick: () => void this.importLevel()
-    });
-    new PixelButton({
-      scene: this,
-      x: contentX,
-      y: SIDEBAR_ORIGIN.y + 450,
-      width: actionWidth,
-      height: 38,
-      label: "EXPORT",
-      fontSize: "19px",
-      onClick: () => this.exportLevel()
-    });
-    new PixelButton({
-      scene: this,
-      x: actionX2,
-      y: SIDEBAR_ORIGIN.y + 450,
-      width: actionWidth,
-      height: 38,
-      label: "PLAY TEST",
-      fontSize: "19px",
-      onClick: () => this.playTest()
-    });
-    new PixelButton({
-      scene: this,
-      x: contentX,
-      y: SIDEBAR_ORIGIN.y + 498,
-      width: contentWidth,
-      height: 40,
-      label: "MENU",
-      fontSize: "21px",
-      onClick: () => {
-        session.replaceEditorDraft(this.draft);
-        this.scene.start("MenuScene");
-      }
-    });
   }
 
   private buildBottomControls() {
+    const controls = getEditorBottomControlLayout();
+    const actions = getEditorBottomActionLayout();
     const label = (x: number, y: number, text: string) =>
       this.add
         .text(x, y, text, {
@@ -216,13 +147,13 @@ export class EditorScene extends Phaser.Scene {
         })
         .setOrigin(0, 0.5);
 
-    const hudLeft = HUD_ORIGIN.x + 24;
-    const nameLabelY = HUD_ORIGIN.y + 18;
-    const nameValueY = HUD_ORIGIN.y + 46;
-    const groupLabelY = HUD_ORIGIN.y + 86;
-    const groupControlY = HUD_ORIGIN.y + 106;
-    const groupWidth = 146;
-    const groupGap = 12;
+    const hudLeft = controls.leftX;
+    const nameLabelY = controls.nameLabelY;
+    const nameValueY = controls.nameValueY;
+    const groupLabelY = controls.groupLabelY;
+    const groupControlY = controls.groupControlY;
+    const groupWidth = controls.groupWidth;
+    const groupGap = controls.groupGap;
 
     label(hudLeft, nameLabelY, "NAME");
     label(hudLeft, groupLabelY, "HAY");
@@ -231,17 +162,16 @@ export class EditorScene extends Phaser.Scene {
 
     this.statTexts = {
       name: value(hudLeft + 112, nameValueY, "26px"),
-      hay: value(hudLeft + 44, groupControlY + 18),
-      tnt: value(hudLeft + groupWidth + groupGap + 44, groupControlY + 18),
-      goal: value(hudLeft + (groupWidth + groupGap) * 2 + 44, groupControlY + 18)
+      goal: value(controls.goalValueX, groupControlY + 18)
     };
+    this.hudStatTexts = {};
 
     const stepper = (x: number, y: number, onMinus: () => void, onPlus: () => void) => {
       new PixelButton({
         scene: this,
         x,
         y,
-        width: 34,
+        width: controls.goalStepperWidth,
         height: 34,
         label: "-",
         fontSize: "18px",
@@ -249,9 +179,9 @@ export class EditorScene extends Phaser.Scene {
       });
       new PixelButton({
         scene: this,
-        x: x + 38,
+        x: x + controls.goalStepperWidth + controls.goalStepperGap,
         y,
-        width: 34,
+        width: controls.goalStepperWidth,
         height: 34,
         label: "+",
         fontSize: "18px",
@@ -259,15 +189,108 @@ export class EditorScene extends Phaser.Scene {
       });
     };
 
-    stepper(hudLeft + 72, groupControlY, () => this.adjustBudget("hay", -2), () =>
-      this.adjustBudget("hay", 2)
-    );
-    stepper(hudLeft + groupWidth + groupGap + 72, groupControlY, () => this.adjustBudget("tnt", -1), () =>
-      this.adjustBudget("tnt", 1)
-    );
-    stepper(hudLeft + (groupWidth + groupGap) * 2 + 72, groupControlY, () => this.adjustGoal(-0.05), () =>
-      this.adjustGoal(0.05)
-    );
+    const budgetButtonWidth = 108;
+    const budgetInset = Math.floor((groupWidth - budgetButtonWidth) / 2);
+
+    this.budgetButtons = {
+      hay: new PixelButton({
+        scene: this,
+        x: hudLeft + budgetInset,
+        y: groupControlY,
+        width: budgetButtonWidth,
+        height: 38,
+        label: "",
+        fontSize: "22px",
+        onClick: () => this.beginBudgetEntry("hay")
+      }),
+      tnt: new PixelButton({
+        scene: this,
+        x: hudLeft + groupWidth + groupGap + budgetInset,
+        y: groupControlY,
+        width: budgetButtonWidth,
+        height: 38,
+        label: "",
+        fontSize: "22px",
+        onClick: () => this.beginBudgetEntry("tnt")
+      })
+    };
+    stepper(controls.goalStepperX, groupControlY, () => this.adjustGoal(-0.05), () => this.adjustGoal(0.05));
+
+    new PixelButton({
+      scene: this,
+      x: actions.contentX,
+      y: actions.topY,
+      width: actions.pairWidth,
+      height: actions.buttonHeight,
+      label: "RENAME",
+      fontSize: "17px",
+      onClick: () => this.beginNameEntry()
+    });
+    new PixelButton({
+      scene: this,
+      x: actions.contentX + actions.pairWidth + actions.pairGap,
+      y: actions.topY,
+      width: actions.pairWidth,
+      height: actions.buttonHeight,
+      label: "IMPORT",
+      fontSize: "17px",
+      onClick: () => void this.importLevel()
+    });
+    new PixelButton({
+      scene: this,
+      x: actions.contentX,
+      y: actions.secondRowY,
+      width: actions.pairWidth,
+      height: actions.buttonHeight,
+      label: "EXPORT",
+      fontSize: "17px",
+      onClick: () => this.exportLevel()
+    });
+    new PixelButton({
+      scene: this,
+      x: actions.contentX + actions.pairWidth + actions.pairGap,
+      y: actions.secondRowY,
+      width: actions.pairWidth,
+      height: actions.buttonHeight,
+      label: "PLAY TEST",
+      fontSize: "17px",
+      onClick: () => this.playTest()
+    });
+    new PixelButton({
+      scene: this,
+      x: actions.contentX,
+      y: actions.menuY,
+      width: actions.contentWidth,
+      height: actions.menuHeight,
+      label: "MENU",
+      fontSize: "18px",
+      onClick: () => {
+        session.replaceEditorDraft(this.draft);
+        this.scene.start("MenuScene");
+      }
+    });
+
+    getEditorHudStatSlots().forEach((slot) => {
+      this.add
+        .text(slot.labelX, slot.labelY, "", {
+          fontFamily: "Courier New",
+          fontSize: "16px",
+          color: "#bfa16e",
+          fontStyle: "bold",
+          resolution: 2
+        })
+        .setOrigin(0, 0);
+
+      this.hudStatTexts[slot.key] = this.add
+        .text(slot.valueX, slot.valueY, "", {
+          fontFamily: "Courier New",
+          fontSize: "16px",
+          color: "#fce7b2",
+          fontStyle: "bold",
+          resolution: 2
+        })
+        .setOrigin(0, 0);
+    });
   }
 
   private buildMapInput() {
@@ -292,33 +315,43 @@ export class EditorScene extends Phaser.Scene {
     this.boardGraphics.clear();
     this.overlayGraphics.clear();
     drawLevelBoard(this.boardGraphics, this.draft, this.hoverCells);
-    this.infoText.setText(
-      [
-        `TOOL: ${this.tool.toUpperCase()}`,
-        `FIRES: ${this.draft.fireSources.length}   STRUCTURES: ${this.draft.structures.length}`,
-        isLevelValid(this.draft) ? "LEVEL SHAPE: VALID" : "LEVEL SHAPE: INVALID"
-      ].join("\n")
-    );
 
     this.statTexts.name.setText(this.draft.name.slice(0, 20));
-    this.statTexts.hay.setText(String(this.draft.resourceBudget.hayCells));
-    this.statTexts.tnt.setText(String(this.draft.resourceBudget.tntCount));
+    this.budgetButtons?.hay.setLabel(String(this.draft.resourceBudget.hayCells));
+    this.budgetButtons?.tnt.setLabel(String(this.draft.resourceBudget.tntCount));
     this.statTexts.goal.setText(`${Math.round(this.draft.completionPct * 100)}%`);
+    getEditorBottomStats(this.draft).forEach((item) => {
+      const text = this.hudStatTexts[item.key];
+      if (!text) {
+        return;
+      }
+      text.setText(`${item.label} ${item.value}`);
+      text.setColor(item.tone === "danger" ? "#d5533c" : "#fce7b2");
+    });
 
     Object.entries(this.toolButtons ?? {}).forEach(([tool, button]) => {
       button.setSelected(tool === this.tool);
     });
 
-    if (this.naming) {
+    if (this.naming || this.budgetEntry) {
       this.overlayGraphics.fillStyle(COLORS.overlay, 0.85);
       this.overlayGraphics.fillRect(0, 0, PANEL_WIDTH + 40, CANVAS_HEIGHT);
       this.overlayGraphics.fillStyle(0x2a1c12, 1);
       this.overlayGraphics.fillRoundedRect(CANVAS_CENTER_X - 180, 250, 360, 120, 16);
       this.overlayGraphics.lineStyle(5, COLORS.frameLight, 1);
       this.overlayGraphics.strokeRoundedRect(CANVAS_CENTER_X - 180, 250, 360, 120, 16);
-      this.nameOverlayText.setVisible(true);
+      this.overlayText.setPosition(CANVAS_CENTER_X, 330);
+      this.overlayText.setVisible(true);
+    } else if (this.transientMessage) {
+      this.overlayGraphics.fillStyle(COLORS.overlay, 0.92);
+      this.overlayGraphics.fillRoundedRect(CANVAS_CENTER_X - 210, 130, 420, 72, 14);
+      this.overlayGraphics.lineStyle(4, COLORS.frameLight, 1);
+      this.overlayGraphics.strokeRoundedRect(CANVAS_CENTER_X - 210, 130, 420, 72, 14);
+      this.overlayText.setText(this.transientMessage);
+      this.overlayText.setPosition(CANVAS_CENTER_X, 166);
+      this.overlayText.setVisible(true);
     } else {
-      this.nameOverlayText.setVisible(false);
+      this.overlayText.setVisible(false);
     }
   }
 
@@ -362,29 +395,22 @@ export class EditorScene extends Phaser.Scene {
     this.renderScene();
   }
 
-  private adjustBudget(kind: "hay" | "tnt", delta: number) {
-    if (kind === "hay") {
-      this.draft.resourceBudget.hayCells = Math.max(0, this.draft.resourceBudget.hayCells + delta);
-    } else {
-      this.draft.resourceBudget.tntCount = Math.max(0, this.draft.resourceBudget.tntCount + delta);
-    }
-    this.renderScene();
-  }
-
   private adjustGoal(delta: number) {
-    this.draft.completionPct = Number(Math.max(0.1, Math.min(0.95, this.draft.completionPct + delta)).toFixed(2));
+    const currentStep = Math.round(this.draft.completionPct * 20);
+    const nextStep = Math.max(1, Math.min(20, currentStep + Math.round(delta * 20)));
+    this.draft.completionPct = nextStep / 20;
     this.renderScene();
   }
 
   private beginNameEntry() {
     this.naming = true;
-    this.nameOverlayText.setText(
+    this.overlayText.setText(
       `LEVEL NAME\n\n${this.draft.name}\n\nType to edit. Enter saves. Esc cancels.`
     );
     this.renderScene();
     domBridge.beginTextEntry(this.draft.name, {
       onUpdate: (value) => {
-        this.nameOverlayText.setText(
+        this.overlayText.setText(
           `LEVEL NAME\n\n${value || "(empty)"}\n\nType to edit. Enter saves. Esc cancels.`
         );
       },
@@ -402,37 +428,73 @@ export class EditorScene extends Phaser.Scene {
     });
   }
 
+  private beginBudgetEntry(kind: "hay" | "tnt") {
+    const currentValue =
+      kind === "hay" ? this.draft.resourceBudget.hayCells : this.draft.resourceBudget.tntCount;
+    const label = kind === "hay" ? "HAY" : "TNT";
+    this.budgetEntry = kind;
+    this.overlayText.setText(
+      `${label} BUDGET\n\n${currentValue}\n\nEnter a whole number from 0 to 999.`
+    );
+    this.renderScene();
+    domBridge.beginNumberEntry(currentValue, {
+      onUpdate: (value) => {
+        this.overlayText.setText(
+          `${label} BUDGET\n\n${value || "(empty)"}\n\nEnter a whole number from 0 to 999.`
+        );
+      },
+      onCommit: (value) => {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isInteger(parsed) || parsed < 0 || parsed > EditorScene.MAX_RESOURCE_INPUT) {
+          this.showTransientMessage("Enter a whole number between 0 and 999.");
+        } else if (kind === "hay") {
+          // TODO: add authored-budget validation so obviously unreasonable values are flagged before export.
+          this.draft.resourceBudget.hayCells = parsed;
+        } else {
+          // TODO: add authored-budget validation so obviously unreasonable values are flagged before export.
+          this.draft.resourceBudget.tntCount = parsed;
+        }
+        this.budgetEntry = null;
+        this.renderScene();
+      },
+      onCancel: () => {
+        this.budgetEntry = null;
+        this.renderScene();
+      }
+    });
+  }
+
   private async importLevel() {
     try {
       const raw = await domBridge.pickJsonFile();
       if (!raw) {
-        this.statusText.setText("Import cancelled.");
+        this.showTransientMessage("Import cancelled.");
         return;
       }
       this.draft = parseLevelFile(raw);
       session.replaceEditorDraft(this.draft);
-      this.statusText.setText("Imported level into the editor.");
+      this.showTransientMessage("Imported level into the editor.");
       this.renderScene();
     } catch (error) {
-      this.statusText.setText(error instanceof Error ? error.message : "Import failed.");
+      this.showTransientMessage(error instanceof Error ? error.message : "Import failed.");
     }
   }
 
   private exportLevel() {
     const errors = validateLevel(this.draft);
     if (errors.length) {
-      this.statusText.setText(errors[0]);
+      this.showTransientMessage(errors[0]);
       return;
     }
     domBridge.downloadText(`${slugify(this.draft.name || this.draft.id)}.json`, serializeLevel(this.draft));
     session.addCustomLevel(cloneLevel(this.draft));
-    this.statusText.setText("Exported level JSON.");
+    this.showTransientMessage("Exported level JSON.");
   }
 
   private playTest() {
     const errors = validateLevel(this.draft);
     if (errors.length) {
-      this.statusText.setText(errors[0]);
+      this.showTransientMessage(errors[0]);
       return;
     }
     session.replaceEditorDraft(this.draft);
@@ -440,5 +502,15 @@ export class EditorScene extends Phaser.Scene {
       level: cloneLevel(this.draft),
       fromEditor: true
     });
+  }
+
+  private showTransientMessage(message: string) {
+    this.transientMessage = message;
+    this.transientMessageTimer?.remove(false);
+    this.transientMessageTimer = this.time.delayedCall(1800, () => {
+      this.transientMessage = null;
+      this.renderScene();
+    });
+    this.renderScene();
   }
 }

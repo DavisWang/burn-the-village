@@ -51,8 +51,8 @@ export const SPEED_OPTIONS = [
 
 export const BRUSH_OPTIONS = [
   { label: "S", size: 1 },
-  { label: "M", size: 3 },
-  { label: "L", size: 5 }
+  { label: "M", size: 2 },
+  { label: "L", size: 3 }
 ] as const;
 
 export const COLORS = {

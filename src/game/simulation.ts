@@ -1,4 +1,5 @@
-import { BRUSH_OPTIONS, SPEED_OPTIONS } from "./constants";
+import { SPEED_OPTIONS } from "./constants";
+import { getBrushFootprint } from "./brushes";
 import { createRng, nextSeed } from "./rng";
 import type {
   GridCell,
@@ -182,12 +183,31 @@ function countCombustibleNeighbors(grid: GridCell[][], point: Point): number {
   }, 0);
 }
 
+function hasPendingIgnition(state: SimulationState): boolean {
+  for (let y = 0; y < state.level.gridSize; y += 1) {
+    for (let x = 0; x < state.level.gridSize; x += 1) {
+      const cell = state.grid[y][x];
+      const canIgniteNextTick =
+        (cell.material === "hay" || cell.material === "tnt") && cell.lifecycle === "idle";
+      if (!canIgniteNextTick) {
+        continue;
+      }
+      if (countBurningNeighbors(state.grid, { x, y }) > 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function maybeTriggerFailure(state: SimulationState): SimulationState {
   if (
     state.outcome === "active" &&
     state.hayRemaining === 0 &&
     state.tntRemaining === 0 &&
-    state.destructionPct < state.level.completionPct
+    state.destructionPct < state.level.completionPct &&
+    !hasTransientFire(state) &&
+    !hasPendingIgnition(state)
   ) {
     state.outcome = "failed";
   }
@@ -246,27 +266,22 @@ export function applyHayBrush(
     ...state,
     grid: cloneGrid(state.grid)
   };
-  const brushSize = BRUSH_OPTIONS[Math.max(0, Math.min(BRUSH_OPTIONS.length - 1, brushIndex))].size;
-  const radius = Math.floor(brushSize / 2);
+  const footprint = getBrushFootprint(center, brushIndex, next.level.gridSize);
 
-  for (let y = center.y - radius; y <= center.y + radius; y += 1) {
-    for (let x = center.x - radius; x <= center.x + radius; x += 1) {
-      if (x < 0 || y < 0 || x >= next.level.gridSize || y >= next.level.gridSize) {
-        continue;
-      }
-      if (next.hayRemaining <= 0) {
-        return maybeTriggerFailure(updateMetrics(next));
-      }
-      const cell = next.grid[y][x];
-      if (!isPlaceableGround(cell)) {
-        continue;
-      }
-      next.grid[y][x] = {
-        ...createEmptyCell(),
-        material: "hay"
-      };
-      next.hayRemaining -= 1;
+  for (const cellPoint of footprint) {
+    const { x, y } = cellPoint;
+    if (next.hayRemaining <= 0) {
+      return maybeTriggerFailure(updateMetrics(next));
     }
+    const cell = next.grid[y][x];
+    if (!isPlaceableGround(cell)) {
+      continue;
+    }
+    next.grid[y][x] = {
+      ...createEmptyCell(),
+      material: "hay"
+    };
+    next.hayRemaining -= 1;
   }
 
   return maybeTriggerFailure(updateMetrics(next));

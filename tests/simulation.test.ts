@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { getBrushFootprint } from "../src/game/brushes";
 import { parseLevelFile, serializeLevel, validateLevel } from "../src/game/level-io";
 import {
   applyHayBrush,
@@ -62,6 +63,37 @@ describe("simulation rules", () => {
     expect(afterFirstTick.grid[0][1].lifecycle).toBe("fuse");
     expect(afterSecondTick.grid[0][1].lifecycle).toBe("spent");
     expect(afterSecondTick.activeExplosions.length).toBeGreaterThan(0);
+  });
+
+  it("does not fail when the last TNT is placed next to a fire source", () => {
+    const state = createSimulation(makeLevel({ resourceBudget: { hayCells: 1, tntCount: 1 } }), 12);
+    const spentHay = applyHayBrush(state, { x: 10, y: 10 }, 0);
+
+    expect(spentHay.hayRemaining).toBe(0);
+
+    const planted = placeTnt(spentHay, { x: 1, y: 0 });
+    expect(planted.tntRemaining).toBe(0);
+    expect(planted.outcome).toBe("active");
+
+    const afterTick = stepSimulation(planted);
+    expect(afterTick.grid[0][1].lifecycle).toBe("fuse");
+    expect(afterTick.outcome).toBe("active");
+  });
+
+  it("uses a 2x2 top-left anchored medium hay brush", () => {
+    const state = createSimulation(makeLevel({ resourceBudget: { hayCells: 10, tntCount: 0 } }), 13);
+    const next = applyHayBrush(state, { x: 5, y: 5 }, 1);
+
+    expect(
+      [
+        next.grid[5][5].material,
+        next.grid[5][6].material,
+        next.grid[6][5].material,
+        next.grid[6][6].material
+      ]
+    ).toEqual(["hay", "hay", "hay", "hay"]);
+    expect(next.grid[4][4].material).toBe("empty");
+    expect(next.hayRemaining).toBe(6);
   });
 
   it("rolls a new seed on reset", () => {
@@ -158,11 +190,33 @@ describe("simulation rules", () => {
   });
 });
 
+describe("brush footprints", () => {
+  it("returns 1x1, 2x2, and 3x3 footprints for the three brush sizes", () => {
+    expect(getBrushFootprint({ x: 8, y: 8 }, 0, 32)).toHaveLength(1);
+    expect(getBrushFootprint({ x: 8, y: 8 }, 1, 32)).toHaveLength(4);
+    expect(getBrushFootprint({ x: 8, y: 8 }, 2, 32)).toHaveLength(9);
+  });
+
+  it("clamps brush footprints at the map edge", () => {
+    expect(getBrushFootprint({ x: 31, y: 31 }, 1, 32)).toEqual([{ x: 31, y: 31 }]);
+    expect(getBrushFootprint({ x: 0, y: 0 }, 2, 32)).toHaveLength(4);
+  });
+});
+
 describe("level files", () => {
   it("round-trips a valid level through JSON import/export", () => {
     const level = makeLevel();
     const parsed = parseLevelFile(serializeLevel(level));
     expect(parsed).toEqual(level);
+  });
+
+  it("rejects authored resource budgets above 999", () => {
+    const errors = validateLevel(
+      makeLevel({
+        resourceBudget: { hayCells: 1_000, tntCount: 3 }
+      })
+    );
+    expect(errors[0]).toContain("between 0 and 999");
   });
 
   it("rejects overlapping authored cells", () => {

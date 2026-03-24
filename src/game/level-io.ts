@@ -7,6 +7,8 @@ import type {
   StructureDefinition
 } from "./types";
 
+const MAX_RESOURCE_BUDGET = 999;
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -31,7 +33,9 @@ function isResourceBudget(value: unknown): value is ResourceBudget {
     isInteger(value.hayCells) &&
     isInteger(value.tntCount) &&
     value.hayCells >= 0 &&
-    value.tntCount >= 0
+    value.hayCells <= MAX_RESOURCE_BUDGET &&
+    value.tntCount >= 0 &&
+    value.tntCount <= MAX_RESOURCE_BUDGET
   );
 }
 
@@ -69,6 +73,12 @@ export function validateLevel(level: LevelDefinition): string[] {
   }
   if (level.resourceBudget.hayCells < 0 || level.resourceBudget.tntCount < 0) {
     errors.push("Resource budgets cannot be negative.");
+  }
+  if (
+    level.resourceBudget.hayCells > MAX_RESOURCE_BUDGET ||
+    level.resourceBudget.tntCount > MAX_RESOURCE_BUDGET
+  ) {
+    errors.push(`Resource budgets must be between 0 and ${MAX_RESOURCE_BUDGET}.`);
   }
 
   const occupied = new Map<string, string>();

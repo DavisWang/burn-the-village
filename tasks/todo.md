@@ -2,6 +2,23 @@
 
 ## Plan
 
+- [x] Add shared helpers for fire/burning animation phases, brush footprints, and full-panel/container layout rules.
+- [x] Rework the splash screen to use a full-panel menu layout with no empty sidebar/HUD frames and add the `By Davis Wang` footnote.
+- [x] Move the level editor action cluster into the bottom bar right side and replace inline status text with overlay-style messaging.
+- [x] Make the level select list scrollable beyond 10 entries and keep tiles/sidebar centered within their containers.
+- [x] Update gameplay brush sizes to `1x1`, `2x2` top-left anchored, and `3x3`, with matching hover/application logic.
+- [x] Add or extend unit tests for animation phases, brush footprints, level-select scrolling/layout, menu/editor layout invariants, and typography helpers.
+- [ ] Verify with `npm test`, `npm run build`, and browser checks for splash, editor, gameplay fire animation, and level select scrolling.
+- [x] Center the editor sidebar content and keep the bottom action buttons fully inside the sidebar frame.
+- [x] Move editor read-only stats out of the sidebar and into the bottom HUD bar.
+- [x] Move gameplay read-only stats (`goal`, `destroyed`, `score`, `medal`) into the bottom HUD bar and keep the sidebar focused on controls/resources.
+- [x] Add unit tests for the layout invariants and HUD stat grouping.
+- [x] Verify with `npm test` and `npm run build`.
+- [x] Update the editor goal control to support `5%-100%` in `5%` increments.
+- [x] Replace editor hay/TNT steppers with direct numeric entry for `0-999`.
+- [x] Tighten authored resource budget validation to reject values above `999`.
+- [x] Fix selected button rendering so the active hay brush choice has a visible outline.
+- [x] Verify with `npm test` and `npm run build`.
 - [x] Scaffold `Vite + TypeScript + Phaser` project with test/build tooling.
 - [x] Implement level types, validation, import/export, editor draft helpers, and session state.
 - [x] Implement deterministic simulation engine for fire spread, TNT, scoring, and run outcomes.
@@ -12,6 +29,39 @@
 
 ## Review
 
+- Added shared `brushes`, `fire-animation`, `layout`, `hud-content`, and `level-select-content` helpers so the new brush footprints, flame phases, HUD layout math, and tile typography are covered by pure unit tests instead of scene-only behavior.
+- Reworked the splash screen to use a full-panel frame, kept the menu buttons centered in that panel, and added the requested `By Davis Wang` footnote in the lower-right corner.
+- Moved the editor `Rename / Import / Export / Play Test / Menu` cluster into the bottom bar, replaced inline status text with overlay/transient messaging, then tightened the HUD packing so the goal controls and read-only stats stay left of the action cluster.
+- Updated hay brush sizing to `1x1`, `2x2` top-left anchored, and `3x3`, and wired the same footprint helper into both simulation placement and gameplay hover previews.
+- Added animated fire-source and burning-cell rendering with subtle flicker, ember pulses, and breathing glow while keeping non-burning cells unchanged.
+- Increased the level-select `GOAL / HAY / TNT` typography again, kept tile stats to those three lines only, and added viewport-clamped wheel/keyboard scrolling for long level lists.
+- Verified the full regression suite with `npm test` and `npm run build`.
+- Browser-checked the refreshed splash screen and the editor bottom-bar move/final HUD fit in a real browser.
+- Browser scene-switch automation was unreliable for the gameplay and long-list acceptance pass, so those paths are covered by the new unit tests and static code-path verification rather than a full automated browser replay.
+- Centered the editor sidebar button column and anchored the action-button cluster from the bottom so `Rename/Import`, `Export/Play Test`, and `Menu` stay inside the sidebar section.
+- Removed the editor's sidebar info block and surfaced `fires`, `structures`, and `shape` as read-only HUD stats in the bottom bar next to the interactive budget/goal controls.
+- Moved gameplay `goal`, `destroyed`, `score`, and `medal` into dedicated bottom-bar stat slots and reduced the sidebar to controls, resources, and run-state guidance.
+- Replaced the old green bottom-bar guidance text with neutral bottom-bar copy and added pure helper coverage for sidebar alignment, overflow bounds, and HUD stat grouping.
+- Verified `npm test` passes with the new UI regression tests.
+- Verified `npm run build` passes.
+- Visually re-checked the editor in a real browser after the first pass surfaced a bottom-bar overlap, then tightened the HUD row spacing so the stats and controls no longer collide.
+- Re-centered the gameplay sidebar control rows against the sidebar frame, moved `HAY LEFT` and `TNT LEFT` into the bottom bar, and removed the unintended sidebar/run guidance copy.
+- Bottom-anchored the gameplay `RESET` / `LEVELS` buttons so both stay inside the sidebar frame, moved the resource row below the destruction meter, and removed the duplicate score meter.
+- Re-verified the gameplay HUD in a real browser after the latest pass: no sidebar button overflow, no resource/meter overlap, and only the destruction meter remains.
+- Fixed the simulation failure gate so spending the final resource does not fail the run when an idle hay/TNT tile is already adjacent to an ignition source and will light on the next tick.
+- Added a regression test for the exact last-TNT-adjacent-to-fire-source case and re-verified with `npm test` and `npm run build`.
+- Reworked the gameplay summary dialog onto a bounded layout so the `NEXT LEVEL` button stays inside the modal.
+- Increased bottom-bar label size and added explicit `PASS` / `BRONZE` / `SILVER` / `GOLD` progress-marker annotations with matching colors on the destruction meter.
+- Re-verified both the gameplay HUD and cleared-state dialog in a real browser after the latest pass.
+- Removed the level tile source label so each level card now shows only `name`, `goal`, `hay`, and `tnt`.
+- Centered the level select sidebar content and buttons off a shared sidebar column layout.
+- Added regression tests for the level tile stats text and level select sidebar centering, then re-verified with `npm test` and `npm run build`.
+- Added lessons for sidebar-centering regressions and the rule against introducing new visible UI text without explicit instruction.
+- Updated TNT post-explosion rendering so `spent` TNT shows blast residue instead of the live TNT crate art.
+- Verified the latest editor/gameplay logic pass with `npm test` and `npm run build`.
+- Confirmed editor goal controls now step on `5%` boundaries up to `100%`, while authored resource budgets are constrained to `0-999`.
+- Reworked editor hay/TNT budget editing to use direct numeric entry and added a TODO hook for future "reasonable value" validation.
+- Strengthened selected-button rendering so the active hay brush selection keeps a visible outline.
 - Verified `npm test` passes.
 - Verified `npm run build` passes and emits a production bundle.
 - Verified the built app loads in a real browser with a Phaser canvas at `776x680`.

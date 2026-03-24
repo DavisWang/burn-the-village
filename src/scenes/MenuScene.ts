@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 
-import { MAP_ORIGIN, MAP_SIZE, PLAYFIELD_CENTER_X } from "../game/constants";
-import { drawPanelFrame } from "../ui/board-renderer";
+import { drawMenuFrame } from "../ui/board-renderer";
+import { getMenuPanelLayout } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
 
 export class MenuScene extends Phaser.Scene {
@@ -10,13 +10,11 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    const frame = this.add.graphics();
-    drawPanelFrame(frame);
-    const titleCenterX = PLAYFIELD_CENTER_X;
-    const textWidth = MAP_SIZE - 92;
+    drawMenuFrame(this.add.graphics());
+    const layout = getMenuPanelLayout();
 
     this.add
-      .text(titleCenterX, MAP_ORIGIN.y + 86, "BURN THE", {
+      .text(layout.titleCenterX, layout.contentY + 86, "BURN THE", {
         fontFamily: "Courier New",
         fontSize: "38px",
         fontStyle: "bold",
@@ -26,7 +24,7 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(titleCenterX, MAP_ORIGIN.y + 146, "VILLAGE", {
+      .text(layout.titleCenterX, layout.contentY + 146, "VILLAGE", {
         fontFamily: "Courier New",
         fontSize: "66px",
         fontStyle: "bold",
@@ -38,23 +36,22 @@ export class MenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(titleCenterX, MAP_ORIGIN.y + 220, "LAY THE TRAIL. LIGHT THE FUSE.\nLEAVE NOTHING STANDING.", {
+      .text(layout.titleCenterX, layout.contentY + 220, "LAY THE TRAIL. LIGHT THE FUSE.\nLEAVE NOTHING STANDING.", {
         fontFamily: "Courier New",
         fontSize: "18px",
         color: "#bfa16e",
         align: "center",
         resolution: 2,
-        wordWrap: { width: textWidth }
+        wordWrap: { width: layout.textWidth }
       })
       .setOrigin(0.5);
 
-    const buttonX = titleCenterX - 124;
     new PixelButton({
       scene: this,
-      x: buttonX,
-      y: MAP_ORIGIN.y + 298,
-      width: 248,
-      height: 72,
+      x: layout.buttonX,
+      y: layout.firstButtonY,
+      width: layout.buttonWidth,
+      height: layout.buttonHeight,
       label: "LEVEL SELECT",
       fontSize: "18px",
       onClick: () => this.scene.start("LevelSelectScene")
@@ -62,13 +59,22 @@ export class MenuScene extends Phaser.Scene {
 
     new PixelButton({
       scene: this,
-      x: buttonX,
-      y: MAP_ORIGIN.y + 388,
-      width: 248,
-      height: 72,
+      x: layout.buttonX,
+      y: layout.secondButtonY,
+      width: layout.buttonWidth,
+      height: layout.buttonHeight,
       label: "LEVEL EDITOR",
       fontSize: "18px",
       onClick: () => this.scene.start("EditorScene")
     });
+
+    this.add
+      .text(layout.footnoteX, layout.footnoteY, "By Davis Wang", {
+        fontFamily: "Courier New",
+        fontSize: "14px",
+        color: "#bfa16e",
+        resolution: 2
+      })
+      .setOrigin(1, 1);
   }
 }

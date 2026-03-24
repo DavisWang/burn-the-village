@@ -14,6 +14,7 @@ type PixelButtonOptions = {
 };
 
 export class PixelButton extends Phaser.GameObjects.Container {
+  private readonly selectionOutline: Phaser.GameObjects.Rectangle;
   private readonly shadow: Phaser.GameObjects.Rectangle;
   private readonly panel: Phaser.GameObjects.Rectangle;
   private readonly highlight: Phaser.GameObjects.Rectangle;
@@ -31,6 +32,11 @@ export class PixelButton extends Phaser.GameObjects.Container {
     this.buttonWidth = options.width;
     this.baseFontSize = Number.parseInt(options.fontSize ?? "18", 10);
 
+    this.selectionOutline = options.scene.add
+      .rectangle(4, 4, options.width - 8, options.height - 8)
+      .setOrigin(0)
+      .setStrokeStyle(2, COLORS.frameLight)
+      .setVisible(false);
     this.shadow = options.scene.add
       .rectangle(4, 6, options.width, options.height, 0x090604)
       .setOrigin(0);
@@ -52,7 +58,7 @@ export class PixelButton extends Phaser.GameObjects.Container {
       .setOrigin(0.5);
     this.hitArea = options.scene.add.zone(0, 0, options.width, options.height).setOrigin(0);
 
-    this.add([this.shadow, this.panel, this.highlight, this.labelText, this.hitArea]);
+    this.add([this.selectionOutline, this.shadow, this.panel, this.highlight, this.labelText, this.hitArea]);
     this.setSize(options.width, options.height);
     this.hitArea.setInteractive({ useHandCursor: true });
     this.hitArea.on("pointerdown", () => {
@@ -83,6 +89,10 @@ export class PixelButton extends Phaser.GameObjects.Container {
   }
 
   private redraw(hovered: boolean) {
+    this.selectionOutline.setVisible(this.selected);
+    this.selectionOutline.setStrokeStyle(2, this.enabled ? COLORS.frameLight : 0x8b7652);
+    this.selectionOutline.setAlpha(this.selected ? (this.enabled ? 0.85 : 0.45) : 0);
+
     if (!this.enabled) {
       this.panel.setFillStyle(0x2e2418);
       this.panel.setStrokeStyle(4, 0x45331d);

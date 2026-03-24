@@ -17,6 +17,7 @@ import {
   TICK_MS
 } from "../game/constants";
 import { BUILT_IN_LEVELS } from "../game/levels";
+import { getBrushFootprint } from "../game/brushes";
 import { session } from "../game/session";
 import {
   applyHayBrush,
@@ -29,6 +30,13 @@ import {
 } from "../game/simulation";
 import type { LevelDefinition, Point, SimulationState, ToolKind } from "../game/types";
 import { drawPanelFrame, drawSimulationBoard } from "../ui/board-renderer";
+import { getGameBottomStats, getGameSidebarLines } from "../ui/hud-content";
+import {
+  getGameHudStatSlots,
+  getGameProgressMarkers,
+  getGameSidebarLayout,
+  getGameSummaryLayout
+} from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
 
 type GameSceneData = {
@@ -45,8 +53,9 @@ export class GameScene extends Phaser.Scene {
   private infoText!: Phaser.GameObjects.Text;
   private summaryText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
-  private destructionLabel!: Phaser.GameObjects.Text;
-  private scoreLabel!: Phaser.GameObjects.Text;
+  private hudStatTexts!: Record<string, Phaser.GameObjects.Text>;
+  private hudStatLabels!: Record<string, Phaser.GameObjects.Text>;
+  private progressMarkerTexts: Phaser.GameObjects.Text[] = [];
   private overlayGraphics!: Phaser.GameObjects.Graphics;
   private summaryPrimaryButton!: PixelButton;
   private summarySecondaryButton!: PixelButton;
@@ -91,43 +100,64 @@ export class GameScene extends Phaser.Scene {
     this.hudGraphics = this.add.graphics();
     this.overlayGraphics = this.add.graphics();
     this.infoText = this.add
-      .text(SIDEBAR_ORIGIN.x, SIDEBAR_ORIGIN.y + 322, "", {
+      .text(SIDEBAR_ORIGIN.x + 18, SIDEBAR_ORIGIN.y + 322, "", {
         fontFamily: "Courier New",
-        fontSize: "15px",
+        fontSize: "16px",
         color: "#fce7b2",
         resolution: 2,
-        lineSpacing: 10,
-        wordWrap: { width: 190 }
+        lineSpacing: 8,
+        wordWrap: { width: 170 }
       })
       .setOrigin(0, 0);
 
     this.statusText = this.add
-      .text(HUD_ORIGIN.x + 24, HUD_ORIGIN.y + 88, "", {
-        fontFamily: "Courier New",
-        fontSize: "16px",
-        color: "#83dd4c",
-        resolution: 2
-      })
-      .setOrigin(0, 0);
-    this.destructionLabel = this.add
-      .text(HUD_ORIGIN.x + 22, HUD_ORIGIN.y + 6, "DESTRUCTION", {
+      .text(HUD_ORIGIN.x + 22, HUD_ORIGIN.y + 124, "", {
         fontFamily: "Courier New",
         fontSize: "14px",
         color: "#bfa16e",
-        resolution: 2
+        resolution: 2,
+        wordWrap: { width: PANEL_WIDTH - 48 }
       })
       .setOrigin(0, 0);
-    this.scoreLabel = this.add
-      .text(HUD_ORIGIN.x + 460, HUD_ORIGIN.y + 6, "SCORE", {
-        fontFamily: "Courier New",
-        fontSize: "14px",
-        color: "#bfa16e",
-        resolution: 2
-      })
-      .setOrigin(0, 0);
+    this.hudStatTexts = {};
+    this.hudStatLabels = {};
+    getGameHudStatSlots().forEach((slot) => {
+      this.hudStatLabels[slot.key] = this.add
+        .text(slot.labelX, slot.labelY, slot.key.toUpperCase(), {
+          fontFamily: "Courier New",
+          fontSize: "16px",
+          color: "#bfa16e",
+          fontStyle: "bold",
+          resolution: 2
+        })
+        .setOrigin(0, 0);
+
+      this.hudStatTexts[slot.key] = this.add
+        .text(slot.valueX, slot.valueY, "", {
+          fontFamily: "Courier New",
+          fontSize: "20px",
+          color: "#fce7b2",
+          fontStyle: "bold",
+          resolution: 2
+        })
+        .setOrigin(0, 0);
+    });
+
+    getGameProgressMarkers(HUD_ORIGIN.x + 22, 676, this.level.completionPct).forEach((marker) => {
+      const text = this.add
+        .text(marker.x, HUD_ORIGIN.y + 46, marker.label, {
+          fontFamily: "Courier New",
+          fontSize: "12px",
+          color: marker.color,
+          fontStyle: "bold",
+          resolution: 2
+        })
+        .setOrigin(marker.key === "gold" ? 1 : 0.5, 0);
+      this.progressMarkerTexts.push(text);
+    });
 
     this.summaryText = this.add
-      .text(CANVAS_CENTER_X, 316, "", {
+      .text(CANVAS_CENTER_X, getGameSummaryLayout().summaryTextY, "", {
         fontFamily: "Courier New",
         fontSize: "20px",
         color: "#fce7b2",
@@ -158,12 +188,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private buildSidebar() {
+    const layout = getGameSidebarLayout();
+
     this.toolButtons = {
       hay: new PixelButton({
         scene: this,
-        x: SIDEBAR_ORIGIN.x,
+        x: layout.dualRowX,
         y: SIDEBAR_ORIGIN.y + 44,
-        width: 88,
+        width: layout.dualButtonWidth,
         height: 64,
         label: "HAY",
         onClick: () => {
@@ -173,9 +205,9 @@ export class GameScene extends Phaser.Scene {
       }),
       tnt: new PixelButton({
         scene: this,
-        x: SIDEBAR_ORIGIN.x + 100,
+        x: layout.dualRowX + layout.dualButtonWidth + layout.dualGap,
         y: SIDEBAR_ORIGIN.y + 44,
-        width: 88,
+        width: layout.dualButtonWidth,
         height: 64,
         label: "TNT",
         onClick: () => {
@@ -186,7 +218,7 @@ export class GameScene extends Phaser.Scene {
     };
 
     this.add
-      .text(SIDEBAR_ORIGIN.x, SIDEBAR_ORIGIN.y + 124, "BRUSH", {
+      .text(layout.sectionLabelX, SIDEBAR_ORIGIN.y + 124, "BRUSH", {
         fontFamily: "Courier New",
         fontSize: "16px",
         color: "#bfa16e",
@@ -198,9 +230,9 @@ export class GameScene extends Phaser.Scene {
     BRUSH_OPTIONS.forEach((brush, index) => {
       const button = new PixelButton({
         scene: this,
-        x: SIDEBAR_ORIGIN.x + index * 64,
+        x: layout.brushRowX + index * (layout.brushButtonWidth + layout.brushGap),
         y: SIDEBAR_ORIGIN.y + 148,
-        width: 56,
+        width: layout.brushButtonWidth,
         height: 48,
         label: brush.label,
         onClick: () => {
@@ -212,7 +244,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.add
-      .text(SIDEBAR_ORIGIN.x, SIDEBAR_ORIGIN.y + 218, "SPEED", {
+      .text(layout.sectionLabelX, SIDEBAR_ORIGIN.y + 218, "SPEED", {
         fontFamily: "Courier New",
         fontSize: "16px",
         color: "#bfa16e",
@@ -223,9 +255,9 @@ export class GameScene extends Phaser.Scene {
 
     new PixelButton({
       scene: this,
-      x: SIDEBAR_ORIGIN.x,
+      x: layout.speedRowX,
       y: SIDEBAR_ORIGIN.y + 242,
-      width: 56,
+      width: layout.speedButtonWidth,
       height: 44,
       label: "-",
       onClick: () => {
@@ -234,9 +266,9 @@ export class GameScene extends Phaser.Scene {
     });
     new PixelButton({
       scene: this,
-      x: SIDEBAR_ORIGIN.x + 132,
+      x: layout.speedRowX + layout.contentWidth - layout.speedButtonWidth,
       y: SIDEBAR_ORIGIN.y + 242,
-      width: 56,
+      width: layout.speedButtonWidth,
       height: 44,
       label: "+",
       onClick: () => {
@@ -244,7 +276,7 @@ export class GameScene extends Phaser.Scene {
       }
     });
     this.speedText = this.add
-      .text(SIDEBAR_ORIGIN.x + 94, SIDEBAR_ORIGIN.y + 265, "", {
+      .text(layout.speedLabelCenterX, SIDEBAR_ORIGIN.y + 265, "", {
         fontFamily: "Courier New",
         fontSize: "14px",
         color: "#fce7b2",
@@ -254,10 +286,10 @@ export class GameScene extends Phaser.Scene {
 
     new PixelButton({
       scene: this,
-      x: SIDEBAR_ORIGIN.x,
-      y: SIDEBAR_ORIGIN.y + 448,
-      width: 188,
-      height: 44,
+      x: layout.actionX,
+      y: layout.actionTopY,
+      width: layout.contentWidth,
+      height: layout.actionHeight,
       label: "RESET",
       onClick: () => {
         this.state = resetSimulation(this.state);
@@ -267,10 +299,10 @@ export class GameScene extends Phaser.Scene {
 
     new PixelButton({
       scene: this,
-      x: SIDEBAR_ORIGIN.x,
-      y: SIDEBAR_ORIGIN.y + 500,
-      width: 188,
-      height: 44,
+      x: layout.actionX,
+      y: layout.actionBottomY,
+      width: layout.contentWidth,
+      height: layout.actionHeight,
       label: this.fromEditor ? "EDITOR" : "LEVELS",
       onClick: () => {
         this.scene.start(this.fromEditor ? "EditorScene" : "LevelSelectScene");
@@ -307,12 +339,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private buildSummaryButtons() {
+    const layout = getGameSummaryLayout();
+
     this.summaryPrimaryButton = new PixelButton({
       scene: this,
-      x: CANVAS_CENTER_X - 120,
-      y: 388,
-      width: 240,
-      height: 54,
+      x: layout.buttonX,
+      y: layout.firstButtonY,
+      width: layout.buttonWidth,
+      height: layout.buttonHeight,
       label: "RETRY",
       onClick: () => {
         this.state = resetSimulation(this.state);
@@ -321,10 +355,10 @@ export class GameScene extends Phaser.Scene {
     });
     this.summarySecondaryButton = new PixelButton({
       scene: this,
-      x: CANVAS_CENTER_X - 120,
-      y: 454,
-      width: 240,
-      height: 54,
+      x: layout.buttonX,
+      y: layout.secondButtonY,
+      width: layout.buttonWidth,
+      height: layout.buttonHeight,
       label: this.fromEditor ? "EDITOR" : "LEVELS",
       onClick: () => {
         this.scene.start(this.fromEditor ? "EditorScene" : "LevelSelectScene");
@@ -332,10 +366,10 @@ export class GameScene extends Phaser.Scene {
     });
     this.nextButton = new PixelButton({
       scene: this,
-      x: CANVAS_CENTER_X - 120,
-      y: 520,
-      width: 240,
-      height: 54,
+      x: layout.buttonX,
+      y: layout.thirdButtonY,
+      width: layout.buttonWidth,
+      height: layout.buttonHeight,
       label: "NEXT LEVEL",
       onClick: () => {
         const next = this.findNextLevelId();
@@ -361,23 +395,19 @@ export class GameScene extends Phaser.Scene {
     drawSimulationBoard(this.boardGraphics, this.state, this.hoverCells);
     this.drawHud();
     this.speedText.setText(SPEED_OPTIONS[this.state.speedIndex].label);
-    this.infoText.setText(
-      [
-        `GOAL ${(this.level.completionPct * 100).toFixed(0)}%`,
-        `DESTROYED ${(this.state.destructionPct * 100).toFixed(0)}%`,
-        `SCORE ${this.state.score}`,
-        `MEDAL ${this.state.medal.toUpperCase()}`,
-        "",
-        `HAY LEFT ${this.state.hayRemaining}`,
-        `TNT LEFT ${this.state.tntRemaining}`,
-        "",
-        this.state.outcome === "successLocked"
-          ? "SUCCESS LOCKED\nFIRE IS STILL RUNNING."
-          : this.state.outcome === "failed"
-            ? "FAILURE\nOUT OF RESOURCES."
-            : "ACTIVE RUN"
-      ].join("\n")
-    );
+    getGameBottomStats(this.level, this.state).forEach((item) => {
+      const text = this.hudStatTexts[item.key];
+      const label = this.hudStatLabels[item.key];
+      if (label) {
+        label.setText(item.label);
+      }
+      if (!text) {
+        return;
+      }
+      text.setText(item.value);
+      text.setColor(item.tone === "warning" ? "#e9bb42" : item.tone === "success" ? "#83dd4c" : "#fce7b2");
+    });
+    this.infoText.setText(getGameSidebarLines(this.state).join("\n"));
 
     this.toolButtons?.hay.setSelected(this.tool === "hay");
     this.toolButtons?.tnt.setSelected(this.tool === "tnt");
@@ -392,21 +422,15 @@ export class GameScene extends Phaser.Scene {
       this.showSummary();
     } else {
       this.hideSummary();
-      this.statusText.setText(
-        this.state.outcome === "successLocked"
-          ? "MINIMUM DESTRUCTION HIT. FINAL SCORE WILL LOCK WHEN THE FIRE DIES."
-          : "LAY HAY OR PLANT TNT. THE RUN FAILS AS SOON AS BOTH RESOURCES HIT ZERO."
-      );
+      this.statusText.setText("");
     }
   }
 
   private drawHud() {
     const meterX = HUD_ORIGIN.x + 22;
-    const meterY = HUD_ORIGIN.y + 22;
-    const meterWidth = 400;
+    const meterY = HUD_ORIGIN.y + 68;
+    const meterWidth = 676;
     const meterHeight = 30;
-    const scoreX = HUD_ORIGIN.x + 460;
-    const scoreWidth = 232;
 
     this.hudGraphics.fillStyle(0x170f09, 1);
     this.hudGraphics.fillRoundedRect(meterX, meterY, meterWidth, meterHeight, 8);
@@ -420,40 +444,33 @@ export class GameScene extends Phaser.Scene {
       meterHeight - 8,
       6
     );
-    const goalX = meterX + meterWidth * this.level.completionPct;
-    this.hudGraphics.lineStyle(4, COLORS.warning, 1);
-    this.hudGraphics.lineBetween(goalX, meterY - 4, goalX, meterY + meterHeight + 4);
-
-    this.hudGraphics.fillStyle(0x170f09, 1);
-    this.hudGraphics.fillRoundedRect(scoreX, meterY, scoreWidth, meterHeight, 8);
-    this.hudGraphics.strokeRoundedRect(scoreX, meterY, scoreWidth, meterHeight, 8);
-    this.hudGraphics.fillStyle(COLORS.grassA, 1);
-    this.hudGraphics.fillRoundedRect(
-      scoreX + 4,
-      meterY + 4,
-      Math.max(0, scoreWidth - 8) * (this.state.score / 1000),
-      meterHeight - 8,
-      6
-    );
-
     const thresholds = getMedalDestructionThresholds();
-    [thresholds.bronze, thresholds.silver, thresholds.gold].forEach((value) => {
-      const thresholdX = meterX + meterWidth * value;
-      this.hudGraphics.lineStyle(3, COLORS.frameLight, 1);
-      this.hudGraphics.lineBetween(thresholdX, meterY - 2, thresholdX, meterY + meterHeight + 2);
+    getGameProgressMarkers(meterX, meterWidth, this.level.completionPct).forEach((marker) => {
+      const lineWidth = marker.key === "pass" ? 4 : 3;
+      const topOffset = marker.key === "pass" ? 4 : 2;
+      this.hudGraphics.lineStyle(lineWidth, Phaser.Display.Color.HexStringToColor(marker.color).color, 1);
+      this.hudGraphics.lineBetween(marker.x, meterY - topOffset, marker.x, meterY + meterHeight + topOffset);
     });
 
-    this.statusText.setPosition(HUD_ORIGIN.x + 24, HUD_ORIGIN.y + 88);
+    this.statusText.setPosition(HUD_ORIGIN.x + 22, HUD_ORIGIN.y + 124);
   }
 
   private showSummary() {
+    const layout = getGameSummaryLayout();
+
     this.overlayGraphics.clear();
     this.overlayGraphics.fillStyle(COLORS.overlay, 0.82);
     this.overlayGraphics.fillRect(0, 0, PANEL_WIDTH + 40, CANVAS_HEIGHT);
     this.overlayGraphics.fillStyle(0x2a1c12, 1);
-    this.overlayGraphics.fillRoundedRect(CANVAS_CENTER_X - 178, 220, 356, 340, 18);
+    this.overlayGraphics.fillRoundedRect(layout.dialogX, layout.dialogY, layout.dialogWidth, layout.dialogHeight, 18);
     this.overlayGraphics.lineStyle(5, COLORS.frameLight, 1);
-    this.overlayGraphics.strokeRoundedRect(CANVAS_CENTER_X - 178, 220, 356, 340, 18);
+    this.overlayGraphics.strokeRoundedRect(
+      layout.dialogX,
+      layout.dialogY,
+      layout.dialogWidth,
+      layout.dialogHeight,
+      18
+    );
 
     const success = this.state.outcome === "successResolved";
     const next = this.findNextLevelId();
@@ -492,17 +509,7 @@ export class GameScene extends Phaser.Scene {
     if (this.tool === "tnt") {
       return [center];
     }
-    const size = BRUSH_OPTIONS[this.brushIndex].size;
-    const radius = Math.floor(size / 2);
-    const cells: Point[] = [];
-    for (let y = center.y - radius; y <= center.y + radius; y += 1) {
-      for (let x = center.x - radius; x <= center.x + radius; x += 1) {
-        if (x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE) {
-          cells.push({ x, y });
-        }
-      }
-    }
-    return cells;
+    return getBrushFootprint(center, this.brushIndex, GRID_SIZE);
   }
 
   private applyPlacement(point: Point) {

@@ -4,6 +4,8 @@ type TextEntryCallbacks = {
   onCancel: () => void;
 };
 
+type TextEntryMode = "text" | "numeric";
+
 class DomBridge {
   private fileInput: HTMLInputElement;
   private textInput: HTMLInputElement;
@@ -87,7 +89,18 @@ class DomBridge {
   }
 
   beginTextEntry(initialValue: string, callbacks: TextEntryCallbacks) {
+    this.beginEntry("text", initialValue, callbacks);
+  }
+
+  beginNumberEntry(initialValue: number, callbacks: TextEntryCallbacks) {
+    this.beginEntry("numeric", String(initialValue), callbacks);
+  }
+
+  private beginEntry(mode: TextEntryMode, initialValue: string, callbacks: TextEntryCallbacks) {
     this.activeCallbacks = callbacks;
+    this.textInput.type = "text";
+    this.textInput.inputMode = mode === "numeric" ? "numeric" : "text";
+    this.textInput.pattern = mode === "numeric" ? "[0-9]*" : "";
     this.textInput.value = initialValue;
     this.textInput.focus();
     this.textInput.setSelectionRange(initialValue.length, initialValue.length);
