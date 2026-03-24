@@ -62,6 +62,18 @@ export function getGameProgressBarLayout() {
   };
 }
 
+export function getGlobalAudioToggleLayout() {
+  const width = 30;
+  const height = 20;
+
+  return {
+    x: CANVAS_MARGIN + PANEL_WIDTH - PANEL_INNER_MARGIN_X - width,
+    y: CANVAS_MARGIN + 12,
+    width,
+    height
+  };
+}
+
 export function getMenuPanelLayout() {
   const contentX = CANVAS_MARGIN + PANEL_INNER_MARGIN_X;
   const contentY = CANVAS_MARGIN + PANEL_INNER_MARGIN_TOP;

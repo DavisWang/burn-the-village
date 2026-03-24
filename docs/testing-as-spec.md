@@ -7,6 +7,7 @@ The tests in this repo are not just sanity checks. They are the executable versi
 | Test file | What it specifies | Why it matters |
 | --- | --- | --- |
 | `tests/simulation.test.ts` | Failure gates, terrain-aware placement/explosion behavior, brush footprints, medal thresholds, reset seed behavior, and import/export validation | Protects gameplay rules and level file contracts |
+| `tests/audio.test.ts` | Audio runtime state, gameplay cue detection, and button click sound gating | Protects the lean audio layer without requiring browser playback in tests |
 | `tests/ui-layout.test.ts` | Sidebar/HUD centering, overlay bounds, obstacle sidebar copy, progress meter layout, stat slot placement, and summary dialog fit | Protects pixel geometry and spacing decisions that repeatedly regressed |
 | `tests/ui-rendering.test.ts` | Grass/terrain/roof texture richness, terrain layer ordering, thumbnail rendering, and selected-button outline order/strength | Protects visual contracts that are easy to weaken during refactors |
 | `tests/fire-animation.test.ts` | Fire animation frame helper behavior | Keeps animation helpers stable without coupling everything to a scene |
@@ -23,6 +24,7 @@ The tests in this repo are not just sanity checks. They are the executable versi
 | Button visuals or selection affordances | `tests/ui-rendering.test.ts` | Selected-state visibility is a known regression area |
 | Fonts or font sizes | `tests/typography.test.ts` and likely layout tests | Readability changes often have layout consequences |
 | Overlay layering | `tests/ui-layout.test.ts` and possibly `tests/ui-rendering.test.ts` | Modal and selected-state depth rules should stay explicit |
+| Mute toggle placement or audio runtime helpers | `tests/audio.test.ts`, `tests/ui-layout.test.ts`, and likely docs | Audio UX is now part of the fixed-panel contract, not an incidental extra |
 
 ## What The Tests Do Not Try To Do
 

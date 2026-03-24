@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 
+import { addGlobalAudioToggle } from "../ui/global-audio-toggle";
 import { drawMenuFrame } from "../ui/board-renderer";
 import { getMenuPanelLayout } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
@@ -12,6 +13,7 @@ export class MenuScene extends Phaser.Scene {
 
   create() {
     drawMenuFrame(this.add.graphics());
+    addGlobalAudioToggle(this);
     const layout = getMenuPanelLayout();
 
     this.add

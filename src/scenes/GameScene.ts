@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 
+import { getGameplayAudioCues } from "../audio/gameplay-cues";
+import { playCue, unlockAudio } from "../audio/controller";
 import {
   BRUSH_OPTIONS,
   CANVAS_CENTER_X,
@@ -30,6 +32,7 @@ import {
 } from "../game/simulation";
 import type { LevelDefinition, Point, SimulationState, ToolKind } from "../game/types";
 import { drawPanelFrame, drawSimulationBoard } from "../ui/board-renderer";
+import { addGlobalAudioToggle } from "../ui/global-audio-toggle";
 import { getGameBottomStats, getGameSidebarLines } from "../ui/hud-content";
 import {
   getGameHudStatSlots,
@@ -103,6 +106,7 @@ export class GameScene extends Phaser.Scene {
 
   create() {
     drawPanelFrame(this.add.graphics());
+    addGlobalAudioToggle(this);
 
     this.add
       .text(MAP_ORIGIN.x, HEADER_Y, this.level.name, {
@@ -225,7 +229,12 @@ export class GameScene extends Phaser.Scene {
       const interval = TICK_MS / speed;
       this.accumulator += delta;
       while (this.accumulator >= interval) {
-        this.state = stepSimulation(this.state);
+        const previousState = this.state;
+        const nextState = stepSimulation(previousState);
+        getGameplayAudioCues(previousState, nextState).forEach((cue) => {
+          playCue(this, cue);
+        });
+        this.state = nextState;
         this.accumulator -= interval;
       }
     }
@@ -600,10 +609,18 @@ export class GameScene extends Phaser.Scene {
     if (this.state.outcome !== "active") {
       return;
     }
+    unlockAudio(this);
+    const previousState = this.state;
     if (this.tool === "hay") {
       this.state = applyHayBrush(this.state, point, this.brushIndex);
+      if (this.state.hayRemaining < previousState.hayRemaining) {
+        playCue(this, "hayPlace");
+      }
     } else {
       this.state = placeTnt(this.state, point);
+      if (this.state.tntRemaining < previousState.tntRemaining) {
+        playCue(this, "tntPlace");
+      }
     }
   }
 

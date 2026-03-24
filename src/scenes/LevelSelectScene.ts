@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 
+import { playCue, unlockAudio } from "../audio/controller";
 import {
   HEADER_Y,
   HUD_ORIGIN,
@@ -12,6 +13,7 @@ import { session } from "../game/session";
 import type { LevelCatalogEntry } from "../game/types";
 import { drawLevelThumbnail, drawPanelFrame } from "../ui/board-renderer";
 import { domBridge } from "../ui/dom-bridge";
+import { addGlobalAudioToggle } from "../ui/global-audio-toggle";
 import { getLevelCardStatsText, getLevelSelectSidebarCopy } from "../ui/level-select-content";
 import { clampLevelSelectScroll, getLevelSelectGridLayout, getLevelSelectSidebarLayout } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
@@ -31,6 +33,7 @@ export class LevelSelectScene extends Phaser.Scene {
   create() {
     const frame = this.add.graphics();
     drawPanelFrame(frame);
+    addGlobalAudioToggle(this);
 
     this.add
       .text(MAP_ORIGIN.x, HEADER_Y, "LEVEL SELECT", {
@@ -78,6 +81,8 @@ export class LevelSelectScene extends Phaser.Scene {
       card.setStrokeStyle(3, 0x6b4d26);
       card.setInteractive({ useHandCursor: true });
       card.on("pointerdown", () => {
+        unlockAudio(this);
+        playCue(this, "uiClick");
         this.scene.start("GameScene", { levelId: entry.level.id });
       });
 

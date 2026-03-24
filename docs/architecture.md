@@ -1,6 +1,6 @@
 # Architecture
 
-Burn the Village is intentionally split between pure game/data helpers and Phaser scene orchestration. The scenes should stay thin: they compose helpers, draw UI, and route input. The heavy lifting lives in `src/game/` and `src/ui/`.
+Burn the Village is intentionally split between pure game/data helpers and Phaser scene orchestration. The scenes should stay thin: they compose helpers, draw UI, and route input. The heavy lifting lives in `src/game/`, `src/audio/`, and `src/ui/`.
 
 ## Scene Flow
 
@@ -22,6 +22,7 @@ flowchart LR
 | Area | Main files | Responsibility |
 | --- | --- | --- |
 | Game constants and tuning | `src/game/constants.ts` | Shared geometry, timing, speed options, brush options, and palette constants |
+| Shared audio | `src/audio/catalog.ts`, `src/audio/controller.ts`, `src/audio/gameplay-cues.ts` | Asset catalog, runtime audio state, unlock/mute/music control, and pure gameplay cue detection |
 | Core simulation | `src/game/simulation.ts` | Grid state, terrain-aware placement/ignition/explosion rules, scoring, medals, and run outcome gates |
 | Level authoring helpers | `src/game/editor-draft.ts`, `src/game/structureCatalog.ts` | Clone/edit a `LevelDefinition`, enforce occupancy and terrain rules, and create structure footprints |
 | Level file boundary | `src/game/level-io.ts` | Validate, parse, and serialize the versioned JSON file format |
@@ -57,6 +58,7 @@ flowchart LR
 | If you need to change... | Start here | Avoid doing this |
 | --- | --- | --- |
 | Fire spread, terrain effects, TNT, score, medals, or win/fail timing | `src/game/simulation.ts` | Do not encode game rules directly in `GameScene` |
+| Music, mute flow, or gameplay sound triggers | `src/audio/` and `src/ui/global-audio-toggle.ts` | Do not hand-roll scene-local audio state or duplicate unlock/mute behavior |
 | Spacing, centering, HUD slot positions, overlay bounds | `src/ui/layout.ts` | Do not scatter new magic numbers across scenes first |
 | Visual style of grass, roofs, flames, or board/frame drawing | `src/ui/board-renderer.ts`, `src/ui/board-textures.ts`, `src/ui/fire-animation.ts` | Do not mix rendering tweaks with game-rule changes unless necessary |
 | Button visuals or selected-state behavior | `src/ui/pixel-button.ts`, `src/ui/pixel-button-order.ts` | Do not patch one scene's button instance and leave the shared widget inconsistent |

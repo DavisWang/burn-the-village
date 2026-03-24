@@ -13,6 +13,7 @@ import {
   PANEL_WIDTH,
   SIDEBAR_ORIGIN
 } from "../game/constants";
+import { addGlobalAudioToggle } from "../ui/global-audio-toggle";
 import { cloneLevel, paintTerrain, placeStructure, removeAt, toggleFireSource } from "../game/editor-draft";
 import { parseLevelFile, serializeLevel, validateLevel } from "../game/level-io";
 import { session } from "../game/session";
@@ -78,6 +79,7 @@ export class EditorScene extends Phaser.Scene {
   create() {
     this.draft = session.getEditorDraft();
     drawPanelFrame(this.add.graphics());
+    addGlobalAudioToggle(this);
 
     this.add
       .text(MAP_ORIGIN.x, HEADER_Y, "LEVEL EDITOR", {

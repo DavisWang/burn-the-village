@@ -9,8 +9,9 @@ This document describes what the repo ships today. When this file conflicts with
 | Boot flow | `main.ts` waits for the pixel font, creates the Phaser game, then enters `BootScene` and `MenuScene` | Avoids a system-font flash on first render. |
 | Menu | Full-panel splash screen with `LEVEL SELECT` and `LEVEL EDITOR` | No empty sidebar/HUD framing on the menu. |
 | Level select | Shows built-in levels, scrolls long lists, imports JSON level files into the current session | Imported levels are available immediately, but only for the current page load. |
-| Gameplay | Fixed 32x32 board, hay brush sizes `1x1`, `2x2` top-left anchored, and `3x3`, TNT placement, speed control, score, rank, progress meter, obstacle terrain (`deepWater`, `wetTerrain`, `wall`), and end-of-run summary | Fire spread is probabilistic, but seeded per run/tick so the simulation is still reproducible from state. |
+| Gameplay | Fixed 32x32 board, hay brush sizes `1x1`, `2x2` top-left anchored, and `3x3`, TNT placement, speed control, score, rank, progress meter, obstacle terrain (`deepWater`, `wetTerrain`, `wall`), end-of-run summary, and gameplay SFX | Fire spread is probabilistic, but seeded per run/tick so the simulation is still reproducible from state. |
 | Level editor | Places fire sources, structures, and terrain obstacles; edits hay/TNT budgets and completion goal; imports/exports JSON; and play-tests directly into `GameScene` | Editing is still constrained to the existing structure catalog, obstacle tile set, and fixed grid size. |
+| Audio | One looping music track, a shared `SOUND ON/OFF` mute toggle, `M` shortcut support, and lean UI/gameplay SFX | Audio unlocks on first user interaction and persists across scene changes for the current page load. |
 | Built-in content | Nine built-in levels, including a permissive `Test` level | Defined in `src/game/levels.ts`. |
 | Deployment | GitHub Pages workflow present | Intended hosting path for the web build. |
 
@@ -30,7 +31,6 @@ This document describes what the repo ships today. When this file conflicts with
 | Area | Status | Evidence in repo |
 | --- | --- | --- |
 | Persistent level storage / DB | Not shipped | The concept doc mentions a DB, but `src/game/session.ts` is intentionally in-memory only. |
-| Audio, music, and FX | Not shipped | Still deferred in the concept doc and absent from the implementation. |
 | Mobile wrapper / iOS app | Not shipped | Mentioned only as a future possibility in the concept doc. |
 | Goal attainability validation | Not shipped | The concept doc and editor TODOs both leave this for later. |
 | Advanced content pipeline / asset toolchain | Not shipped | Visuals are mostly code-driven textures and Phaser drawing helpers today. |

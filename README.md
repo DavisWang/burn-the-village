@@ -16,10 +16,10 @@ Burn the Village is a Phaser + TypeScript web game built around a fixed pixel-ar
 | --- | --- | --- |
 | Splash menu | Shipped | Canvas-rendered title screen with entry points to level select and editor. |
 | Level select | Shipped | Built-in levels plus JSON import into the local session. |
-| Gameplay | Shipped | Fire spread, hay brush placement, TNT fuse/explosion, terrain obstacles (`deep water`, `marsh`, `walls`), score, rank, and end-of-run summary. |
+| Gameplay | Shipped | Fire spread, hay brush placement, TNT fuse/explosion, terrain obstacles (`deep water`, `marsh`, `walls`), score, rank, end-of-run summary, and gameplay SFX cues. |
 | Level editor | Shipped | In-canvas authoring for fires, structures, terrain obstacles, resource budgets, goal, import/export, and play test. |
 | Custom level persistence | Limited | Lives only in in-memory session state for the current page load. |
-| Audio / music / FX | Not shipped | Explicitly deferred. |
+| Audio / music / FX | Shipped | One looping music track, a shared mute control, and a lean set of UI/gameplay effects. |
 | Mobile app wrapper | Not shipped | Mentioned in the concept doc only. |
 
 ## Run And Verify
@@ -48,6 +48,7 @@ Burn the Village is a Phaser + TypeScript web game built around a fixed pixel-ar
 | Path | Responsibility |
 | --- | --- |
 | `src/game/` | Pure game rules, level data, import/export, draft editing, and session state |
+| `src/audio/` | Shared audio catalog, runtime state, and gameplay cue helpers |
 | `src/ui/` | Shared rendering, layout, typography, textures, buttons, and DOM bridge helpers |
 | `src/scenes/` | Phaser scene orchestration for menu, level select, gameplay, and editor |
 | `tests/` | Behavioral and regression specs for simulation, layout, rendering, animation, and typography |

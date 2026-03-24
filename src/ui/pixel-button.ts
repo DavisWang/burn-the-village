@@ -1,7 +1,10 @@
 import Phaser from "phaser";
 
+import { type AudioCueKey } from "../audio/catalog";
+import { playCue, unlockAudio } from "../audio/controller";
 import { COLORS } from "../game/constants";
 import { getPixelButtonLayerOrder, getPixelButtonSelectionOutlineMetrics } from "./pixel-button-order";
+import { getPixelButtonCueForEvent } from "./pixel-button-audio";
 import { PIXEL_FONT_FAMILY, PIXEL_FONT_SIZE_STEP } from "./typography";
 
 type PixelButtonOptions = {
@@ -14,6 +17,7 @@ type PixelButtonOptions = {
   fontSize?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
+  clickCue?: AudioCueKey | null;
   onClick: () => void;
 };
 
@@ -77,9 +81,15 @@ export class PixelButton extends Phaser.GameObjects.Container {
     this.setSize(options.width, options.height);
     this.hitArea.setInteractive({ useHandCursor: true });
     this.hitArea.on("pointerdown", () => {
-      if (this.enabled) {
-        this.onClick();
+      const cue = getPixelButtonCueForEvent("pointerdown", this.enabled, options.clickCue);
+      if (!this.enabled) {
+        return;
       }
+      unlockAudio(options.scene);
+      if (cue) {
+        playCue(options.scene, cue);
+      }
+      this.onClick();
     });
     this.hitArea.on("pointerover", () => this.redraw(true));
     this.hitArea.on("pointerout", () => this.redraw(false));

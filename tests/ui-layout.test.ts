@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CANVAS_MARGIN,
+  PANEL_WIDTH,
+  SECTION_FRAME_BORDER,
   HUD_HEIGHT,
   HUD_ORIGIN,
   MAP_SIZE,
@@ -20,6 +23,7 @@ import {
   getEditorOverlayDepths,
   getEditorOverlayLayout,
   getEditorSidebarLayout,
+  getGlobalAudioToggleLayout,
   getGameHudStatSlots,
   getGameProgressBarLayout,
   getGameProgressMarkers,
@@ -113,6 +117,21 @@ describe("editor layout", () => {
 });
 
 describe("game HUD content", () => {
+  it("keeps the shared sound toggle inside the fixed panel header space", () => {
+    const layout = getGlobalAudioToggleLayout();
+    const pixelButtonShadowOffset = 6;
+    const panelBorderSafeInset = 12;
+    const samePlaneGap = 2;
+
+    expect(layout.x).toBeGreaterThanOrEqual(CANVAS_MARGIN);
+    expect(layout.y).toBeGreaterThanOrEqual(CANVAS_MARGIN + panelBorderSafeInset);
+    expect(layout.x + layout.width).toBeLessThanOrEqual(CANVAS_MARGIN + PANEL_WIDTH);
+    expect(layout.height).toBeLessThanOrEqual(22);
+    expect(layout.y + layout.height + pixelButtonShadowOffset).toBeLessThanOrEqual(
+      SIDEBAR_ORIGIN.y - SECTION_FRAME_BORDER - samePlaneGap
+    );
+  });
+
   it("defaults gameplay controls to hay and the medium brush for each fresh run", () => {
     const controls = getDefaultGameplayControls();
 
