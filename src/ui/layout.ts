@@ -58,7 +58,7 @@ export function getMenuPanelLayout() {
     buttonHeight,
     firstButtonY: contentY + 278,
     secondButtonY: contentY + 368,
-    footnoteX: contentX + contentWidth - 18,
+    footnoteX: CANVAS_CENTER_X,
     footnoteY: contentY + contentHeight - 24
   };
 }
@@ -153,35 +153,6 @@ export function getEditorSidebarLayout() {
   };
 }
 
-export function getEditorHudStatSlots(): StatSlot[] {
-  const controls = getEditorBottomControlLayout();
-  const slotWidth = 132;
-  const gap = 12;
-  const startX = controls.leftX;
-  const labelY = HUD_ORIGIN.y + 132;
-  const valueY = HUD_ORIGIN.y + 132;
-
-  return [
-    { key: "fires", labelX: startX, labelY, valueX: startX, valueY, width: slotWidth },
-    {
-      key: "structures",
-      labelX: startX + slotWidth + gap,
-      labelY,
-      valueX: startX + slotWidth + gap,
-      valueY,
-      width: slotWidth
-    },
-    {
-      key: "shape",
-      labelX: startX + (slotWidth + gap) * 2,
-      labelY,
-      valueX: startX + (slotWidth + gap) * 2,
-      valueY,
-      width: slotWidth
-    }
-  ];
-}
-
 export function getEditorBottomActionLayout() {
   const contentWidth = 196;
   const rightInset = 28;
@@ -213,6 +184,11 @@ export function getEditorBottomControlLayout() {
   const width = rightX - leftX;
   const groupGap = 12;
   const groupWidth = Math.floor((width - groupGap * 2) / 3);
+  const goalGroupX = leftX + (groupWidth + groupGap) * 2;
+  const goalStepperWidth = 34;
+  const goalStepperGap = 6;
+  const goalStepperX = goalGroupX + groupWidth - (goalStepperWidth * 2 + goalStepperGap);
+  const budgetButtonWidth = 108;
 
   return {
     leftX,
@@ -224,10 +200,35 @@ export function getEditorBottomControlLayout() {
     groupControlY: HUD_ORIGIN.y + 100,
     groupWidth,
     groupGap,
-    goalValueX: leftX + (groupWidth + groupGap) * 2 + 34,
-    goalStepperX: leftX + (groupWidth + groupGap) * 2 + 72,
-    goalStepperWidth: 34,
-    goalStepperGap: 6
+    budgetButtonWidth,
+    budgetTextOffsetX: 2,
+    budgetTextOffsetY: 2,
+    budgetFontSize: "20px",
+    goalValueX: goalStepperX - 14,
+    goalStepperX,
+    goalStepperWidth,
+    goalStepperGap
+  };
+}
+
+export function getEditorOverlayLayout() {
+  const inputDialogWidth = 392;
+  const inputDialogHeight = 146;
+  const inputDialogX = CANVAS_CENTER_X - inputDialogWidth / 2;
+  const inputDialogY = 238;
+
+  return {
+    inputDialogX,
+    inputDialogY,
+    inputDialogWidth,
+    inputDialogHeight,
+    inputTextY: inputDialogY + inputDialogHeight / 2,
+    inputWrapWidth: 324,
+    transientDialogX: CANVAS_CENTER_X - 210,
+    transientDialogY: 130,
+    transientDialogWidth: 420,
+    transientDialogHeight: 72,
+    transientTextY: 166
   };
 }
 
@@ -235,6 +236,7 @@ export function getGameHudStatSlots(): StatSlot[] {
   const slotWidth = 104;
   const gap = 12;
   const startX = HUD_ORIGIN.x + 22;
+  const scoreShift = 16;
   const firstRowLabelY = HUD_ORIGIN.y + 8;
   const firstRowValueY = HUD_ORIGIN.y + 28;
   const secondRowLabelY = HUD_ORIGIN.y + 112;
@@ -259,17 +261,17 @@ export function getGameHudStatSlots(): StatSlot[] {
     },
     {
       key: "score",
-      labelX: startX + (slotWidth + gap) * 2,
+      labelX: startX + (slotWidth + gap) * 2 + scoreShift,
       labelY: firstRowLabelY,
-      valueX: startX + (slotWidth + gap) * 2,
+      valueX: startX + (slotWidth + gap) * 2 + scoreShift,
       valueY: firstRowValueY,
       width: slotWidth
     },
     {
       key: "medal",
-      labelX: startX + (slotWidth + gap) * 3,
+      labelX: startX + (slotWidth + gap) * 3 + scoreShift,
       labelY: firstRowLabelY,
-      valueX: startX + (slotWidth + gap) * 3,
+      valueX: startX + (slotWidth + gap) * 3 + scoreShift,
       valueY: firstRowValueY,
       width: slotWidth
     },
@@ -334,6 +336,9 @@ export function getGameSummaryLayout() {
   const dialogHeight = 376;
   const dialogX = CANVAS_CENTER_X - dialogWidth / 2;
   const dialogY = 206;
+  const titleY = dialogY + 54;
+  const statsY = dialogY + 102;
+  const rankY = dialogY + 148;
   const buttonWidth = 240;
   const buttonHeight = 48;
   const buttonX = CANVAS_CENTER_X - buttonWidth / 2;
@@ -348,13 +353,24 @@ export function getGameSummaryLayout() {
     dialogY,
     dialogWidth,
     dialogHeight,
+    titleY,
+    statsY,
+    rankY,
     buttonX,
     buttonWidth,
     buttonHeight,
     firstButtonY,
     secondButtonY,
     thirdButtonY,
-    summaryTextY: dialogY + 96
+    summaryContentBottomY: rankY + 28
+  };
+}
+
+export function getGameSummaryDepths() {
+  return {
+    overlay: 90,
+    text: 91,
+    buttons: 92
   };
 }
 

@@ -12,9 +12,10 @@ import { session } from "../game/session";
 import type { LevelCatalogEntry } from "../game/types";
 import { drawLevelThumbnail, drawPanelFrame } from "../ui/board-renderer";
 import { domBridge } from "../ui/dom-bridge";
-import { getLevelCardStatsStyle, getLevelCardStatsText } from "../ui/level-select-content";
+import { getLevelCardStatsText, getLevelSelectSidebarCopy } from "../ui/level-select-content";
 import { clampLevelSelectScroll, getLevelSelectGridLayout, getLevelSelectSidebarLayout } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
+import { PIXEL_FONT_FAMILY, pixelFontSize } from "../ui/typography";
 
 export class LevelSelectScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
@@ -33,8 +34,8 @@ export class LevelSelectScene extends Phaser.Scene {
 
     this.add
       .text(MAP_ORIGIN.x, HEADER_Y, "LEVEL SELECT", {
-        fontFamily: "Courier New",
-        fontSize: "24px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(24),
         color: "#fce7b2",
         fontStyle: "bold",
         resolution: 2
@@ -43,8 +44,8 @@ export class LevelSelectScene extends Phaser.Scene {
 
     this.statusText = this.add
       .text(HUD_ORIGIN.x, HUD_ORIGIN.y + 88, "", {
-        fontFamily: "Courier New",
-        fontSize: "16px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(16),
         color: "#83dd4c",
         resolution: 2,
         wordWrap: { width: PANEL_WIDTH - 48 }
@@ -58,7 +59,6 @@ export class LevelSelectScene extends Phaser.Scene {
 
   private buildCards(entries: LevelCatalogEntry[]) {
     const grid = getLevelSelectGridLayout(entries.length);
-    const statsStyle = getLevelCardStatsStyle();
     const maskGraphics = this.make.graphics();
     maskGraphics.fillStyle(0xffffff, 1);
     maskGraphics.fillRect(grid.viewportX, grid.viewportY, grid.viewportWidth, grid.viewportHeight);
@@ -86,8 +86,8 @@ export class LevelSelectScene extends Phaser.Scene {
 
       const title = this.add
         .text(92, 12, entry.level.name, {
-          fontFamily: "Courier New",
-          fontSize: "15px",
+          fontFamily: PIXEL_FONT_FAMILY,
+          fontSize: pixelFontSize(15),
           color: "#fce7b2",
           fontStyle: "bold",
           resolution: 2,
@@ -95,23 +95,21 @@ export class LevelSelectScene extends Phaser.Scene {
         })
         .setOrigin(0, 0);
 
-      const stats = this.add
-        .text(
-          92,
-          38,
-          statsText,
-          {
-            fontFamily: "Courier New",
-            fontSize: statsStyle.fontSize,
+      const children: Phaser.GameObjects.GameObject[] = [card, preview, title];
+      if (statsText) {
+        const stats = this.add
+          .text(92, 38, statsText, {
+            fontFamily: PIXEL_FONT_FAMILY,
+            fontSize: pixelFontSize(15),
             color: "#bfa16e",
             resolution: 2,
-            lineSpacing: statsStyle.lineSpacing,
             wordWrap: { width: 132 }
-          }
-        )
-        .setOrigin(0, 0);
+          })
+          .setOrigin(0, 0);
+        children.push(stats);
+      }
 
-      cardContainer.add([card, preview, title, stats]);
+      cardContainer.add(children);
       cardContainer.setData("baseY", y);
       this.cards.push(cardContainer);
       this.cardContainer.add(cardContainer);
@@ -125,8 +123,8 @@ export class LevelSelectScene extends Phaser.Scene {
 
     this.add
       .text(layout.headingX, SIDEBAR_ORIGIN.y + 8, "PLAYABLE LEVELS", {
-        fontFamily: "Courier New",
-        fontSize: "18px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(18),
         color: "#fce7b2",
         fontStyle: "bold",
         resolution: 2
@@ -137,10 +135,10 @@ export class LevelSelectScene extends Phaser.Scene {
       .text(
         layout.bodyX,
         SIDEBAR_ORIGIN.y + 46,
-        "Pick a built-in level or import a JSON file.\nCustom levels stay in memory for this session and can be re-exported from the editor.",
+        getLevelSelectSidebarCopy(),
         {
-          fontFamily: "Courier New",
-          fontSize: "14px",
+          fontFamily: PIXEL_FONT_FAMILY,
+          fontSize: pixelFontSize(14),
           color: "#bfa16e",
           resolution: 2,
           wordWrap: { width: layout.contentWidth }

@@ -10,6 +10,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fontsource/jersey-10": "^5.2.8",
+    "@fontsource/pixelify-sans": "^5.2.7",
+    "@fontsource/silkscreen": "^5.2.8",
+    "@fontsource/tiny5": "^5.2.7",
     "phaser": "^3.90.0"
   },
   "devDependencies": {

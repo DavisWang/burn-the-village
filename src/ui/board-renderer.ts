@@ -16,6 +16,7 @@ import {
 } from "../game/constants";
 import { buildOccupancy } from "../game/editor-draft";
 import type { LevelDefinition, Point, SimulationState } from "../game/types";
+import { getGrassTextureFrame, getStructureTextureFrame } from "./board-textures";
 import { getCombustionFrame } from "./fire-animation";
 
 function fillCell(
@@ -29,10 +30,81 @@ function fillCell(
   graphics.fillRect(MAP_ORIGIN.x + x * CELL_SIZE, MAP_ORIGIN.y + y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
 }
 
+function drawGrassTile(
+  graphics: Phaser.GameObjects.Graphics,
+  cellX: number,
+  cellY: number,
+  tileX: number,
+  tileY: number,
+  tileSize: number
+) {
+  const frame = getGrassTextureFrame({ x: cellX, y: cellY });
+  graphics.fillStyle(frame.baseColor, 1);
+  graphics.fillRect(tileX, tileY, tileSize, tileSize);
+  graphics.fillStyle(frame.patchColor, frame.patchAlpha);
+  graphics.fillRect(
+    tileX + (frame.patchX / CELL_SIZE) * tileSize,
+    tileY + (frame.patchY / CELL_SIZE) * tileSize,
+    Math.max(2, (frame.patchWidth / CELL_SIZE) * tileSize),
+    Math.max(1.5, (frame.patchHeight / CELL_SIZE) * tileSize)
+  );
+  graphics.fillStyle(frame.bladeColor, frame.bladeAlpha);
+  graphics.fillRect(
+    tileX + (frame.bladeX / CELL_SIZE) * tileSize,
+    tileY + tileSize - (frame.bladeHeight / CELL_SIZE) * tileSize - 1,
+    Math.max(1, tileSize / 10),
+    Math.max(2, (frame.bladeHeight / CELL_SIZE) * tileSize)
+  );
+  graphics.fillRect(
+    tileX + (frame.bladeX2 / CELL_SIZE) * tileSize,
+    tileY + tileSize - (frame.bladeHeight2 / CELL_SIZE) * tileSize - 1,
+    Math.max(1, tileSize / 10),
+    Math.max(2, (frame.bladeHeight2 / CELL_SIZE) * tileSize)
+  );
+}
+
 function drawGrassCell(graphics: Phaser.GameObjects.Graphics, x: number, y: number) {
-  fillCell(graphics, x, y, (x + y) % 2 === 0 ? COLORS.grassA : COLORS.grassB);
-  graphics.fillStyle(0xffffff, 0.06);
-  graphics.fillRect(MAP_ORIGIN.x + x * CELL_SIZE, MAP_ORIGIN.y + y * CELL_SIZE, CELL_SIZE, 3);
+  drawGrassTile(graphics, x, y, MAP_ORIGIN.x + x * CELL_SIZE, MAP_ORIGIN.y + y * CELL_SIZE, CELL_SIZE);
+}
+
+function drawStructureTile(
+  graphics: Phaser.GameObjects.Graphics,
+  structureType: "hut" | "house" | "hall",
+  cellX: number,
+  cellY: number,
+  tileX: number,
+  tileY: number,
+  tileSize: number
+) {
+  const frame = getStructureTextureFrame(structureType, { x: cellX, y: cellY });
+  const roofHeight = Math.max(8, Math.round(tileSize * 0.68));
+  const wallHeight = tileSize - roofHeight;
+  const ridgeWidth = Math.max(1, Math.round(tileSize * 0.14));
+  const accentSize = Math.max(1, Math.round(tileSize * 0.1));
+
+  graphics.fillStyle(frame.wallColor, 1);
+  graphics.fillRect(tileX, tileY + roofHeight, tileSize, wallHeight);
+  graphics.fillStyle(frame.wallShadeColor, 0.95);
+  graphics.fillRect(tileX, tileY + roofHeight + Math.max(1, wallHeight - 2), tileSize, Math.max(1, wallHeight / 2));
+
+  graphics.fillStyle(frame.roofColor, 1);
+  graphics.fillRect(tileX, tileY, tileSize, roofHeight);
+  graphics.fillStyle(frame.roofHighlightColor, 0.55);
+  graphics.fillRect(tileX, tileY + 1, tileSize, Math.max(1, Math.round(tileSize * 0.12)));
+  graphics.fillStyle(frame.roofShadeColor, 0.9);
+  graphics.fillRect(tileX, tileY + roofHeight - Math.max(2, Math.round(tileSize * 0.18)), tileSize, Math.max(2, Math.round(tileSize * 0.18)));
+  graphics.fillStyle(frame.ridgeColor, 0.95);
+  graphics.fillRect(tileX + tileSize / 2 - ridgeWidth / 2, tileY + 1, ridgeWidth, roofHeight - 2);
+  graphics.fillStyle(frame.roofHighlightColor, 0.35);
+  graphics.fillRect(tileX + 1, tileY + Math.round(tileSize * 0.32), tileSize - 2, Math.max(1, Math.round(tileSize * 0.08)));
+  graphics.fillRect(tileX + 1, tileY + Math.round(tileSize * 0.5), tileSize - 2, Math.max(1, Math.round(tileSize * 0.08)));
+  graphics.fillStyle(frame.ridgeColor, 0.6);
+  graphics.fillRect(
+    tileX + (frame.accentX / CELL_SIZE) * tileSize,
+    tileY + (frame.accentY / CELL_SIZE) * tileSize,
+    accentSize,
+    accentSize
+  );
 }
 
 function drawAnimatedFlame(
@@ -213,15 +285,19 @@ export function drawSimulationBoard(
           fillCell(graphics, x, y, COLORS.structureBurning, 1);
           drawAnimatedFlame(graphics, { x, y }, frame);
         } else {
-          const color =
+          drawStructureTile(
+            graphics,
             cell.structureType === "hut"
-              ? COLORS.structureSmall
+              ? "hut"
               : cell.structureType === "house"
-                ? COLORS.structureMedium
-                : COLORS.structureLarge;
-          fillCell(graphics, x, y, color, 1);
-          graphics.fillStyle(0xffffff, 0.1);
-          graphics.fillRect(MAP_ORIGIN.x + x * CELL_SIZE, MAP_ORIGIN.y + y * CELL_SIZE, CELL_SIZE, 2);
+                ? "house"
+                : "hall",
+            x,
+            y,
+            MAP_ORIGIN.x + x * CELL_SIZE,
+            MAP_ORIGIN.y + y * CELL_SIZE,
+            CELL_SIZE
+          );
         }
       }
     }
@@ -260,15 +336,15 @@ export function drawLevelBoard(
       if (occupied.has(key)) {
         const structure = level.structures.find((item) => item.id === occupied.get(key));
         if (structure) {
-          const color =
-            structure.type === "hut"
-              ? COLORS.structureSmall
-              : structure.type === "house"
-                ? COLORS.structureMedium
-                : COLORS.structureLarge;
-          fillCell(graphics, x, y, color, 1);
-          graphics.fillStyle(0xffffff, 0.1);
-          graphics.fillRect(MAP_ORIGIN.x + x * CELL_SIZE, MAP_ORIGIN.y + y * CELL_SIZE, CELL_SIZE, 2);
+          drawStructureTile(
+            graphics,
+            structure.type,
+            x,
+            y,
+            MAP_ORIGIN.x + x * CELL_SIZE,
+            MAP_ORIGIN.y + y * CELL_SIZE,
+            CELL_SIZE
+          );
         } else {
           graphics.fillStyle(COLORS.fireC, 1);
           graphics.fillCircle(
@@ -311,25 +387,18 @@ export function drawLevelThumbnail(
   graphics.fillRect(x, y, size, size);
   for (let row = 0; row < GRID_SIZE; row += 1) {
     for (let column = 0; column < GRID_SIZE; column += 1) {
-      graphics.fillStyle((row + column) % 2 === 0 ? COLORS.grassA : COLORS.grassB, 1);
-      graphics.fillRect(x + column * cell, y + row * cell, cell, cell);
+      drawGrassTile(graphics, column, row, x + column * cell, y + row * cell, cell);
       const key = `${column},${row}`;
       if (!occupied.has(key)) {
         continue;
       }
       const structure = level.structures.find((item) => item.id === occupied.get(key));
       if (structure) {
-        const color =
-          structure.type === "hut"
-            ? COLORS.structureSmall
-            : structure.type === "house"
-              ? COLORS.structureMedium
-              : COLORS.structureLarge;
-        graphics.fillStyle(color, 1);
+        drawStructureTile(graphics, structure.type, column, row, x + column * cell, y + row * cell, cell);
       } else {
         graphics.fillStyle(COLORS.fireB, 1);
+        graphics.fillCircle(x + column * cell + cell / 2, y + row * cell + cell / 2, Math.max(1.5, cell * 0.2));
       }
-      graphics.fillRect(x + column * cell, y + row * cell, cell, cell);
     }
   }
   graphics.lineStyle(2, COLORS.frameLight, 1);

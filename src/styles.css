@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  font-family: "Courier New", monospace;
+  font-family: "Tiny5", "Jersey 10", "Silkscreen", "Pixelify Sans", "Courier New", monospace;
   background:
     radial-gradient(circle at top, #3f5f2f 0%, #172019 42%, #0c0c0a 100%);
 }

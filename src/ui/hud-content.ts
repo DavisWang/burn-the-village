@@ -1,10 +1,12 @@
 import { isLevelValid } from "../game/editor-draft";
 import type { LevelDefinition, SimulationState } from "../game/types";
+import { getRankDisplay } from "./rank-display";
 
 export type HudStatItem = {
   key: string;
   label: string;
   value: string;
+  color?: string;
   tone?: "default" | "warning" | "danger" | "success";
 };
 
@@ -32,6 +34,8 @@ export function getEditorBottomStats(level: LevelDefinition): HudStatItem[] {
 }
 
 export function getGameBottomStats(level: LevelDefinition, state: SimulationState): HudStatItem[] {
+  const rank = getRankDisplay(state.medal);
+
   return [
     {
       key: "goal",
@@ -50,23 +54,18 @@ export function getGameBottomStats(level: LevelDefinition, state: SimulationStat
     },
     {
       key: "medal",
-      label: "MEDAL",
-      value: state.medal.toUpperCase(),
-      tone:
-        state.medal === "gold"
-          ? "warning"
-          : state.medal === "none"
-            ? "default"
-            : "success"
+      label: state.medal === "none" ? "" : "RANK",
+      value: state.medal === "none" ? "" : rank.label.toUpperCase(),
+      color: state.medal === "none" ? undefined : rank.color
     },
     {
       key: "hay",
-      label: "HAY LEFT",
+      label: "HAY",
       value: String(state.hayRemaining)
     },
     {
       key: "tnt",
-      label: "TNT LEFT",
+      label: "TNT",
       value: String(state.tntRemaining)
     }
   ];

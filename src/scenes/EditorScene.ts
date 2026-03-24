@@ -21,14 +21,14 @@ import { getStructureStats } from "../game/structureCatalog";
 import type { EditorTool, LevelDefinition, Point } from "../game/types";
 import { drawLevelBoard, drawPanelFrame } from "../ui/board-renderer";
 import { domBridge } from "../ui/dom-bridge";
-import { getEditorBottomStats } from "../ui/hud-content";
 import {
   getEditorBottomActionLayout,
   getEditorBottomControlLayout,
-  getEditorHudStatSlots,
+  getEditorOverlayLayout,
   getEditorSidebarLayout
 } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
+import { PIXEL_FONT_FAMILY, pixelFontSize } from "../ui/typography";
 
 function slugify(value: string): string {
   return value
@@ -52,7 +52,6 @@ export class EditorScene extends Phaser.Scene {
     name: Phaser.GameObjects.Text;
     goal: Phaser.GameObjects.Text;
   };
-  private hudStatTexts!: Record<string, Phaser.GameObjects.Text>;
   private naming = false;
   private budgetEntry: "hay" | "tnt" | null = null;
   private transientMessage: string | null = null;
@@ -68,8 +67,8 @@ export class EditorScene extends Phaser.Scene {
 
     this.add
       .text(MAP_ORIGIN.x, HEADER_Y, "LEVEL EDITOR", {
-        fontFamily: "Courier New",
-        fontSize: "24px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(24),
         color: "#fce7b2",
         fontStyle: "bold",
         resolution: 2
@@ -80,8 +79,8 @@ export class EditorScene extends Phaser.Scene {
     this.overlayGraphics = this.add.graphics();
     this.overlayText = this.add
       .text(CANVAS_CENTER_X, 330, "", {
-        fontFamily: "Courier New",
-        fontSize: "20px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(20),
         color: "#fce7b2",
         align: "center",
         resolution: 2,
@@ -129,23 +128,23 @@ export class EditorScene extends Phaser.Scene {
     const label = (x: number, y: number, text: string) =>
       this.add
         .text(x, y, text, {
-          fontFamily: "Courier New",
-          fontSize: "18px",
+          fontFamily: PIXEL_FONT_FAMILY,
+          fontSize: pixelFontSize(18),
           color: "#bfa16e",
           fontStyle: "bold",
           resolution: 2
         })
         .setOrigin(0, 0);
-    const value = (x: number, y: number, fontSize = "28px") =>
+    const value = (x: number, y: number, fontSize = pixelFontSize(28), originX = 0) =>
       this.add
         .text(x, y, "", {
-          fontFamily: "Courier New",
+          fontFamily: PIXEL_FONT_FAMILY,
           fontSize,
           color: "#fce7b2",
           fontStyle: "bold",
           resolution: 2
         })
-        .setOrigin(0, 0.5);
+        .setOrigin(originX, 0.5);
 
     const hudLeft = controls.leftX;
     const nameLabelY = controls.nameLabelY;
@@ -161,10 +160,9 @@ export class EditorScene extends Phaser.Scene {
     label(hudLeft + (groupWidth + groupGap) * 2, groupLabelY, "GOAL");
 
     this.statTexts = {
-      name: value(hudLeft + 112, nameValueY, "26px"),
-      goal: value(controls.goalValueX, groupControlY + 18)
+      name: value(hudLeft + 112, nameValueY, pixelFontSize(26)),
+      goal: value(controls.goalValueX, groupControlY + 18, pixelFontSize(28), 1)
     };
-    this.hudStatTexts = {};
 
     const stepper = (x: number, y: number, onMinus: () => void, onPlus: () => void) => {
       new PixelButton({
@@ -189,28 +187,31 @@ export class EditorScene extends Phaser.Scene {
       });
     };
 
-    const budgetButtonWidth = 108;
-    const budgetInset = Math.floor((groupWidth - budgetButtonWidth) / 2);
+    const budgetInset = Math.floor((groupWidth - controls.budgetButtonWidth) / 2);
 
     this.budgetButtons = {
       hay: new PixelButton({
         scene: this,
         x: hudLeft + budgetInset,
         y: groupControlY,
-        width: budgetButtonWidth,
+        width: controls.budgetButtonWidth,
         height: 38,
         label: "",
-        fontSize: "22px",
+        fontSize: controls.budgetFontSize,
+        labelOffsetX: controls.budgetTextOffsetX,
+        labelOffsetY: controls.budgetTextOffsetY,
         onClick: () => this.beginBudgetEntry("hay")
       }),
       tnt: new PixelButton({
         scene: this,
         x: hudLeft + groupWidth + groupGap + budgetInset,
         y: groupControlY,
-        width: budgetButtonWidth,
+        width: controls.budgetButtonWidth,
         height: 38,
         label: "",
-        fontSize: "22px",
+        fontSize: controls.budgetFontSize,
+        labelOffsetX: controls.budgetTextOffsetX,
+        labelOffsetY: controls.budgetTextOffsetY,
         onClick: () => this.beginBudgetEntry("tnt")
       })
     };
@@ -269,28 +270,6 @@ export class EditorScene extends Phaser.Scene {
         this.scene.start("MenuScene");
       }
     });
-
-    getEditorHudStatSlots().forEach((slot) => {
-      this.add
-        .text(slot.labelX, slot.labelY, "", {
-          fontFamily: "Courier New",
-          fontSize: "16px",
-          color: "#bfa16e",
-          fontStyle: "bold",
-          resolution: 2
-        })
-        .setOrigin(0, 0);
-
-      this.hudStatTexts[slot.key] = this.add
-        .text(slot.valueX, slot.valueY, "", {
-          fontFamily: "Courier New",
-          fontSize: "16px",
-          color: "#fce7b2",
-          fontStyle: "bold",
-          resolution: 2
-        })
-        .setOrigin(0, 0);
-    });
   }
 
   private buildMapInput() {
@@ -320,35 +299,55 @@ export class EditorScene extends Phaser.Scene {
     this.budgetButtons?.hay.setLabel(String(this.draft.resourceBudget.hayCells));
     this.budgetButtons?.tnt.setLabel(String(this.draft.resourceBudget.tntCount));
     this.statTexts.goal.setText(`${Math.round(this.draft.completionPct * 100)}%`);
-    getEditorBottomStats(this.draft).forEach((item) => {
-      const text = this.hudStatTexts[item.key];
-      if (!text) {
-        return;
-      }
-      text.setText(`${item.label} ${item.value}`);
-      text.setColor(item.tone === "danger" ? "#d5533c" : "#fce7b2");
-    });
 
     Object.entries(this.toolButtons ?? {}).forEach(([tool, button]) => {
       button.setSelected(tool === this.tool);
     });
 
     if (this.naming || this.budgetEntry) {
+      const overlay = getEditorOverlayLayout();
       this.overlayGraphics.fillStyle(COLORS.overlay, 0.85);
       this.overlayGraphics.fillRect(0, 0, PANEL_WIDTH + 40, CANVAS_HEIGHT);
       this.overlayGraphics.fillStyle(0x2a1c12, 1);
-      this.overlayGraphics.fillRoundedRect(CANVAS_CENTER_X - 180, 250, 360, 120, 16);
+      this.overlayGraphics.fillRoundedRect(
+        overlay.inputDialogX,
+        overlay.inputDialogY,
+        overlay.inputDialogWidth,
+        overlay.inputDialogHeight,
+        16
+      );
       this.overlayGraphics.lineStyle(5, COLORS.frameLight, 1);
-      this.overlayGraphics.strokeRoundedRect(CANVAS_CENTER_X - 180, 250, 360, 120, 16);
-      this.overlayText.setPosition(CANVAS_CENTER_X, 330);
+      this.overlayGraphics.strokeRoundedRect(
+        overlay.inputDialogX,
+        overlay.inputDialogY,
+        overlay.inputDialogWidth,
+        overlay.inputDialogHeight,
+        16
+      );
+      this.overlayText.setWordWrapWidth(overlay.inputWrapWidth);
+      this.overlayText.setPosition(CANVAS_CENTER_X, overlay.inputTextY);
       this.overlayText.setVisible(true);
     } else if (this.transientMessage) {
+      const overlay = getEditorOverlayLayout();
       this.overlayGraphics.fillStyle(COLORS.overlay, 0.92);
-      this.overlayGraphics.fillRoundedRect(CANVAS_CENTER_X - 210, 130, 420, 72, 14);
+      this.overlayGraphics.fillRoundedRect(
+        overlay.transientDialogX,
+        overlay.transientDialogY,
+        overlay.transientDialogWidth,
+        overlay.transientDialogHeight,
+        14
+      );
       this.overlayGraphics.lineStyle(4, COLORS.frameLight, 1);
-      this.overlayGraphics.strokeRoundedRect(CANVAS_CENTER_X - 210, 130, 420, 72, 14);
+      this.overlayGraphics.strokeRoundedRect(
+        overlay.transientDialogX,
+        overlay.transientDialogY,
+        overlay.transientDialogWidth,
+        overlay.transientDialogHeight,
+        14
+      );
+      this.overlayText.setWordWrapWidth(overlay.inputWrapWidth);
       this.overlayText.setText(this.transientMessage);
-      this.overlayText.setPosition(CANVAS_CENTER_X, 166);
+      this.overlayText.setPosition(CANVAS_CENTER_X, overlay.transientTextY);
       this.overlayText.setVisible(true);
     } else {
       this.overlayText.setVisible(false);

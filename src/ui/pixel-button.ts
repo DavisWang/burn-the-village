@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 
 import { COLORS } from "../game/constants";
+import { getPixelButtonLayerOrder } from "./pixel-button-order";
+import { PIXEL_FONT_FAMILY, PIXEL_FONT_SIZE_STEP } from "./typography";
 
 type PixelButtonOptions = {
   scene: Phaser.Scene;
@@ -10,6 +12,8 @@ type PixelButtonOptions = {
   height: number;
   label: string;
   fontSize?: string;
+  labelOffsetX?: number;
+  labelOffsetY?: number;
   onClick: () => void;
 };
 
@@ -30,7 +34,7 @@ export class PixelButton extends Phaser.GameObjects.Container {
     super(options.scene, options.x, options.y);
     this.onClick = options.onClick;
     this.buttonWidth = options.width;
-    this.baseFontSize = Number.parseInt(options.fontSize ?? "18", 10);
+    this.baseFontSize = Number.parseInt(options.fontSize ?? "18", 10) + PIXEL_FONT_SIZE_STEP;
 
     this.selectionOutline = options.scene.add
       .rectangle(4, 4, options.width - 8, options.height - 8)
@@ -47,9 +51,11 @@ export class PixelButton extends Phaser.GameObjects.Container {
     this.highlight = options.scene.add
       .rectangle(3, 3, options.width - 6, 8, COLORS.frameLight, 0.45)
       .setOrigin(0);
+    const labelOffsetX = options.labelOffsetX ?? 0;
+    const labelOffsetY = options.labelOffsetY ?? 0;
     this.labelText = options.scene.add
-      .text(options.width / 2, options.height / 2, options.label, {
-        fontFamily: "Courier New",
+      .text(options.width / 2 + labelOffsetX, options.height / 2 + labelOffsetY, options.label, {
+        fontFamily: PIXEL_FONT_FAMILY,
         fontSize: `${this.baseFontSize}px`,
         color: "#fce7b2",
         fontStyle: "bold",
@@ -57,8 +63,16 @@ export class PixelButton extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5);
     this.hitArea = options.scene.add.zone(0, 0, options.width, options.height).setOrigin(0);
+    const layers = {
+      shadow: this.shadow,
+      panel: this.panel,
+      highlight: this.highlight,
+      selectionOutline: this.selectionOutline,
+      labelText: this.labelText,
+      hitArea: this.hitArea
+    } as const;
 
-    this.add([this.selectionOutline, this.shadow, this.panel, this.highlight, this.labelText, this.hitArea]);
+    this.add(getPixelButtonLayerOrder().map((key) => layers[key]));
     this.setSize(options.width, options.height);
     this.hitArea.setInteractive({ useHandCursor: true });
     this.hitArea.on("pointerdown", () => {

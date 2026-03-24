@@ -29,6 +29,36 @@
 
 ## Review
 
+- Reworked structure tiles to read more like roofs instead of flat brown blocks, with roof highlight/shadow bands, a ridge line, and darker wall/eave detail across the board and thumbnails.
+- Replaced the green checkerboard grass with a subtler grassy texture driven by deterministic patches and blade accents so the field keeps variation without loud noise.
+- Enlarged the bronze/silver/gold threshold badges above the destruction meter and shifted them from plain dots to medal-like badges.
+- Restored the hay-brush selected outline by moving the selection border above the button fill in the shared pixel-button layer order.
+- Moved the gameplay success/failure modal onto explicit overlay/text/button depths so it renders above the speed and sidebar controls instead of being clipped by them.
+- Updated the summary copy to `Level Cleared!` / `Run Failed!`, changed visible `medal` labeling to `rank`, and colorized the summary rank line plus HUD rank value from shared rank-display metadata.
+- Centered the `By Davis Wang` footnote on the splash screen.
+- Added rendering/layout regressions for grass/roof texture helpers, pixel-button layer order, rank color mapping, summary overlay depths/content spacing, and centered splash footnote, then re-verified with `npm test` and `npm run build`.
+- Nudged the gameplay `SCORE` stat slot to the right in the bottom HUD so it no longer crowds the `DESTROYED` label, while keeping the full stat row inside the HUD bounds.
+- Shifted editor hay/TNT field text slightly down-right and reduced the field font size via shared control-layout settings so the numeric labels no longer clip inside their buttons.
+- Replaced the level-select sidebar paragraph with the exact requested copy: `Pick a level or import from a json file.`
+- Added layout regressions for the HUD score gap, editor budget-field text padding, and exact level-select sidebar copy, then re-verified with `npm test` and `npm run build`.
+- Increased the global Jersey 10 font step again so the whole UI moved up by a much more noticeable amount, while keeping placements fixed and leaving the existing fit/wrap guards in place.
+- Re-verified the larger global type with `npm test` and `npm run build`; the browser shell reflects the bigger sizing, but scene-switch automation did not reliably reach the denser screens during this pass.
+- Restored `Silkscreen` as the primary UI font per request, while keeping the existing placement/layout unchanged and retaining narrower fallbacks behind it.
+- Simplified level-select cards so they now render only the level name; the old `goal/hay/tnt` tile copy is no longer produced at all.
+- Reworked the gameplay bottom bar so `HAY LEFT` / `TNT LEFT` became `HAY` / `TNT`, the empty `MEDAL NONE` slot now renders blank, and the bronze/silver/gold threshold words were replaced with drawn color icons above the meter.
+- Re-verified the pass with `npm test` and `npm run build`; local browser automation only reliably re-opened the app shell this round, so the level-select/gameplay spot-check is backed by the updated code paths and regression tests rather than a full scene-switched browser replay.
+- Tried `Silkscreen` as a more separated pixel font, but it proved too wide on the densest UI surfaces; the level-select cards and sidebar were the deciding failure case.
+- Swapped the primary font again to `Jersey 10`, kept the fixed UI placement intact, and retained the global size bump plus pixel-font fallbacks so dense glyphs read better without re-laying out the screens.
+- Re-verified the replacement font with `npm test`, `npm run build`, and browser checks on level select plus gameplay; the tighter cards/HUD now read more clearly and stayed inside their existing bounds.
+- Added a shared global pixel-font size step and applied it across scene text plus button labels, so the entire UI moved up one readability notch without repositioning controls.
+- Re-verified the bumped typography with unit tests, a clean production build, and browser checks on the menu and gameplay screens to confirm denser glyphs are easier to separate and no UI elements shifted.
+- Replaced the UI's ad hoc `Courier New` usage with a self-hosted readable pixel font stack built around `Pixelify Sans`, without moving the existing HUD/sidebar/card layout.
+- Centralized font configuration and added a boot-time font wait so Phaser text renders with the intended font immediately instead of flashing a system fallback.
+- Added typography regression coverage for the chosen font family and loader path, then browser-checked the menu, level select, and editor to confirm readability improved without layout drift.
+- Removed the editor's `FIRES / STRUCTURES / SHAPE` read-only row from the bottom bar so only interactive controls remain visible there.
+- Increased the editor input overlay bounds and centralized that sizing in a shared helper so the hay/TNT budget prompt text fits fully inside the popup.
+- Re-anchored the editor goal percentage to the left of the stepper controls so the `%` text cannot slide under the minus button.
+- Added regression coverage for the editor popup bounds and the goal-value/button gap, then re-verified with `npm test` and `npm run build`.
 - Added shared `brushes`, `fire-animation`, `layout`, `hud-content`, and `level-select-content` helpers so the new brush footprints, flame phases, HUD layout math, and tile typography are covered by pure unit tests instead of scene-only behavior.
 - Reworked the splash screen to use a full-panel frame, kept the menu buttons centered in that panel, and added the requested `By Davis Wang` footnote in the lower-right corner.
 - Moved the editor `Rename / Import / Export / Play Test / Menu` cluster into the bottom bar, replaced inline status text with overlay/transient messaging, then tightened the HUD packing so the goal controls and read-only stats stay left of the action cluster.

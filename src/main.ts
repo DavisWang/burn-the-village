@@ -1,4 +1,11 @@
 import Phaser from "phaser";
+import "@fontsource/pixelify-sans/400.css";
+import "@fontsource/pixelify-sans/600.css";
+import "@fontsource/pixelify-sans/700.css";
+import "@fontsource/jersey-10/400.css";
+import "@fontsource/silkscreen/400.css";
+import "@fontsource/silkscreen/700.css";
+import "@fontsource/tiny5/400.css";
 
 import {
   CANVAS_HEIGHT,
@@ -9,23 +16,32 @@ import { EditorScene } from "./scenes/EditorScene";
 import { GameScene } from "./scenes/GameScene";
 import { LevelSelectScene } from "./scenes/LevelSelectScene";
 import { MenuScene } from "./scenes/MenuScene";
+import { waitForPixelFontReady } from "./ui/typography";
 import "./styles.css";
 
-const game = new Phaser.Game({
-  type: Phaser.AUTO,
-  parent: "app",
-  backgroundColor: "#0b0906",
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: CANVAS_WIDTH,
-    height: CANVAS_HEIGHT
-  },
-  pixelArt: true,
-  antialias: false,
-  roundPixels: true,
-  scene: [BootScene, MenuScene, LevelSelectScene, GameScene, EditorScene]
-});
+let game: Phaser.Game | null = null;
+
+async function bootstrap() {
+  await waitForPixelFontReady(document.fonts ?? null);
+
+  game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: "app",
+    backgroundColor: "#0b0906",
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT
+    },
+    pixelArt: true,
+    antialias: false,
+    roundPixels: true,
+    scene: [BootScene, MenuScene, LevelSelectScene, GameScene, EditorScene]
+  });
+
+  window.__BTV_GAME__ = game;
+}
 
 declare global {
   interface Window {
@@ -33,8 +49,8 @@ declare global {
   }
 }
 
-window.__BTV_GAME__ = game;
+void bootstrap();
 
 window.addEventListener("beforeunload", () => {
-  game.destroy(true);
+  game?.destroy(true);
 });

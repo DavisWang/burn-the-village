@@ -22,7 +22,6 @@ import { session } from "../game/session";
 import {
   applyHayBrush,
   createSimulation,
-  getMedalDestructionThresholds,
   placeTnt,
   resetSimulation,
   setSpeedIndex,
@@ -35,9 +34,12 @@ import {
   getGameHudStatSlots,
   getGameProgressMarkers,
   getGameSidebarLayout,
+  getGameSummaryDepths,
   getGameSummaryLayout
 } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
+import { getRankDisplay } from "../ui/rank-display";
+import { PIXEL_FONT_FAMILY, pixelFontSize } from "../ui/typography";
 
 type GameSceneData = {
   levelId?: string;
@@ -52,10 +54,10 @@ export class GameScene extends Phaser.Scene {
   private hudGraphics!: Phaser.GameObjects.Graphics;
   private infoText!: Phaser.GameObjects.Text;
   private summaryText!: Phaser.GameObjects.Text;
+  private summaryRankText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private hudStatTexts!: Record<string, Phaser.GameObjects.Text>;
   private hudStatLabels!: Record<string, Phaser.GameObjects.Text>;
-  private progressMarkerTexts: Phaser.GameObjects.Text[] = [];
   private overlayGraphics!: Phaser.GameObjects.Graphics;
   private summaryPrimaryButton!: PixelButton;
   private summarySecondaryButton!: PixelButton;
@@ -88,8 +90,8 @@ export class GameScene extends Phaser.Scene {
 
     this.add
       .text(MAP_ORIGIN.x, HEADER_Y, this.level.name, {
-        fontFamily: "Courier New",
-        fontSize: "24px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(24),
         color: "#fce7b2",
         fontStyle: "bold",
         resolution: 2
@@ -99,10 +101,11 @@ export class GameScene extends Phaser.Scene {
     this.boardGraphics = this.add.graphics();
     this.hudGraphics = this.add.graphics();
     this.overlayGraphics = this.add.graphics();
+    this.overlayGraphics.setDepth(getGameSummaryDepths().overlay);
     this.infoText = this.add
       .text(SIDEBAR_ORIGIN.x + 18, SIDEBAR_ORIGIN.y + 322, "", {
-        fontFamily: "Courier New",
-        fontSize: "16px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(16),
         color: "#fce7b2",
         resolution: 2,
         lineSpacing: 8,
@@ -112,8 +115,8 @@ export class GameScene extends Phaser.Scene {
 
     this.statusText = this.add
       .text(HUD_ORIGIN.x + 22, HUD_ORIGIN.y + 124, "", {
-        fontFamily: "Courier New",
-        fontSize: "14px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(14),
         color: "#bfa16e",
         resolution: 2,
         wordWrap: { width: PANEL_WIDTH - 48 }
@@ -124,8 +127,8 @@ export class GameScene extends Phaser.Scene {
     getGameHudStatSlots().forEach((slot) => {
       this.hudStatLabels[slot.key] = this.add
         .text(slot.labelX, slot.labelY, slot.key.toUpperCase(), {
-          fontFamily: "Courier New",
-          fontSize: "16px",
+          fontFamily: PIXEL_FONT_FAMILY,
+          fontSize: pixelFontSize(16),
           color: "#bfa16e",
           fontStyle: "bold",
           resolution: 2
@@ -134,8 +137,8 @@ export class GameScene extends Phaser.Scene {
 
       this.hudStatTexts[slot.key] = this.add
         .text(slot.valueX, slot.valueY, "", {
-          fontFamily: "Courier New",
-          fontSize: "20px",
+          fontFamily: PIXEL_FONT_FAMILY,
+          fontSize: pixelFontSize(20),
           color: "#fce7b2",
           fontStyle: "bold",
           resolution: 2
@@ -143,29 +146,30 @@ export class GameScene extends Phaser.Scene {
         .setOrigin(0, 0);
     });
 
-    getGameProgressMarkers(HUD_ORIGIN.x + 22, 676, this.level.completionPct).forEach((marker) => {
-      const text = this.add
-        .text(marker.x, HUD_ORIGIN.y + 46, marker.label, {
-          fontFamily: "Courier New",
-          fontSize: "12px",
-          color: marker.color,
-          fontStyle: "bold",
-          resolution: 2
-        })
-        .setOrigin(marker.key === "gold" ? 1 : 0.5, 0);
-      this.progressMarkerTexts.push(text);
-    });
-
     this.summaryText = this.add
-      .text(CANVAS_CENTER_X, getGameSummaryLayout().summaryTextY, "", {
-        fontFamily: "Courier New",
-        fontSize: "20px",
+      .text(CANVAS_CENTER_X, getGameSummaryLayout().statsY, "", {
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(20),
         color: "#fce7b2",
         align: "center",
         resolution: 2,
         wordWrap: { width: 340 }
       })
       .setOrigin(0.5)
+      .setDepth(getGameSummaryDepths().text)
+      .setVisible(false);
+
+    this.summaryRankText = this.add
+      .text(CANVAS_CENTER_X, getGameSummaryLayout().rankY, "", {
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(22),
+        color: "#fce7b2",
+        fontStyle: "bold",
+        align: "center",
+        resolution: 2
+      })
+      .setOrigin(0.5)
+      .setDepth(getGameSummaryDepths().text)
       .setVisible(false);
 
     this.buildSidebar();
@@ -219,8 +223,8 @@ export class GameScene extends Phaser.Scene {
 
     this.add
       .text(layout.sectionLabelX, SIDEBAR_ORIGIN.y + 124, "BRUSH", {
-        fontFamily: "Courier New",
-        fontSize: "16px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(16),
         color: "#bfa16e",
         fontStyle: "bold",
         resolution: 2
@@ -245,8 +249,8 @@ export class GameScene extends Phaser.Scene {
 
     this.add
       .text(layout.sectionLabelX, SIDEBAR_ORIGIN.y + 218, "SPEED", {
-        fontFamily: "Courier New",
-        fontSize: "16px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(16),
         color: "#bfa16e",
         fontStyle: "bold",
         resolution: 2
@@ -277,8 +281,8 @@ export class GameScene extends Phaser.Scene {
     });
     this.speedText = this.add
       .text(layout.speedLabelCenterX, SIDEBAR_ORIGIN.y + 265, "", {
-        fontFamily: "Courier New",
-        fontSize: "14px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(14),
         color: "#fce7b2",
         resolution: 2
       })
@@ -353,6 +357,7 @@ export class GameScene extends Phaser.Scene {
         this.accumulator = 0;
       }
     });
+    this.summaryPrimaryButton.setDepth(getGameSummaryDepths().buttons);
     this.summarySecondaryButton = new PixelButton({
       scene: this,
       x: layout.buttonX,
@@ -364,6 +369,7 @@ export class GameScene extends Phaser.Scene {
         this.scene.start(this.fromEditor ? "EditorScene" : "LevelSelectScene");
       }
     });
+    this.summarySecondaryButton.setDepth(getGameSummaryDepths().buttons);
     this.nextButton = new PixelButton({
       scene: this,
       x: layout.buttonX,
@@ -378,12 +384,14 @@ export class GameScene extends Phaser.Scene {
         }
       }
     });
+    this.nextButton.setDepth(getGameSummaryDepths().buttons);
     this.hideSummary();
   }
 
   private hideSummary() {
     this.overlayGraphics.clear();
     this.summaryText.setVisible(false);
+    this.summaryRankText.setVisible(false);
     this.summaryPrimaryButton.setVisible(false);
     this.summarySecondaryButton.setVisible(false);
     this.nextButton.setVisible(false);
@@ -405,7 +413,9 @@ export class GameScene extends Phaser.Scene {
         return;
       }
       text.setText(item.value);
-      text.setColor(item.tone === "warning" ? "#e9bb42" : item.tone === "success" ? "#83dd4c" : "#fce7b2");
+      text.setColor(
+        item.color ?? (item.tone === "warning" ? "#e9bb42" : item.tone === "success" ? "#83dd4c" : "#fce7b2")
+      );
     });
     this.infoText.setText(getGameSidebarLines(this.state).join("\n"));
 
@@ -444,12 +454,23 @@ export class GameScene extends Phaser.Scene {
       meterHeight - 8,
       6
     );
-    const thresholds = getMedalDestructionThresholds();
     getGameProgressMarkers(meterX, meterWidth, this.level.completionPct).forEach((marker) => {
       const lineWidth = marker.key === "pass" ? 4 : 3;
       const topOffset = marker.key === "pass" ? 4 : 2;
       this.hudGraphics.lineStyle(lineWidth, Phaser.Display.Color.HexStringToColor(marker.color).color, 1);
       this.hudGraphics.lineBetween(marker.x, meterY - topOffset, marker.x, meterY + meterHeight + topOffset);
+
+      if (marker.key !== "pass") {
+        const iconY = meterY - 18;
+        const iconColor = Phaser.Display.Color.HexStringToColor(marker.color).color;
+        this.hudGraphics.fillStyle(iconColor, 1);
+        this.hudGraphics.fillTriangle(marker.x - 4, iconY + 5, marker.x, iconY + 12, marker.x + 4, iconY + 5);
+        this.hudGraphics.fillCircle(marker.x, iconY, 7);
+        this.hudGraphics.fillStyle(0xffffff, 0.22);
+        this.hudGraphics.fillCircle(marker.x - 1, iconY - 1, 3);
+        this.hudGraphics.lineStyle(2, COLORS.panelShadow, 1);
+        this.hudGraphics.strokeCircle(marker.x, iconY, 7);
+      }
     });
 
     this.statusText.setPosition(HUD_ORIGIN.x + 22, HUD_ORIGIN.y + 124);
@@ -474,16 +495,19 @@ export class GameScene extends Phaser.Scene {
 
     const success = this.state.outcome === "successResolved";
     const next = this.findNextLevelId();
+    const rank = getRankDisplay(this.state.medal);
     this.summaryText.setText(
       [
-        success ? "LEVEL CLEARED" : "RUN FAILED",
+        success ? "Level Cleared!" : "Run Failed!",
         "",
-        `FINAL DESTRUCTION ${(this.state.destructionPct * 100).toFixed(0)}%`,
-        `FINAL SCORE ${this.state.score}`,
-        `MEDAL ${this.state.medal.toUpperCase()}`
+        `Destruction: ${(this.state.destructionPct * 100).toFixed(0)}%`,
+        `Score: ${this.state.score}`
       ].join("\n")
     );
     this.summaryText.setVisible(true);
+    this.summaryRankText.setText(`Rank: ${rank.label}`);
+    this.summaryRankText.setColor(rank.color);
+    this.summaryRankText.setVisible(true);
 
     this.summaryPrimaryButton.setLabel(success ? "REPLAY" : "TRY AGAIN");
     this.summaryPrimaryButton.setVisible(true);

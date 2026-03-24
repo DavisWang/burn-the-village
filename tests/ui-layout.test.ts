@@ -5,21 +5,23 @@ import {
   HUD_ORIGIN,
   MAP_SIZE,
   SIDEBAR_ORIGIN,
-  SIDEBAR_WIDTH
+  SIDEBAR_WIDTH,
+  CANVAS_CENTER_X
 } from "../src/game/constants";
 import { createSimulation } from "../src/game/simulation";
 import type { LevelDefinition } from "../src/game/types";
-import { getEditorBottomStats, getGameBottomStats, getGameSidebarLines } from "../src/ui/hud-content";
-import { getLevelCardStatsStyle, getLevelCardStatsText } from "../src/ui/level-select-content";
+import { getGameBottomStats, getGameSidebarLines } from "../src/ui/hud-content";
+import { getLevelCardStatsText, getLevelSelectSidebarCopy } from "../src/ui/level-select-content";
 import {
   getEditorBottomControlLayout,
   clampLevelSelectScroll,
   getEditorBottomActionLayout,
-  getEditorHudStatSlots,
+  getEditorOverlayLayout,
   getEditorSidebarLayout,
   getGameHudStatSlots,
   getGameProgressMarkers,
   getGameSidebarLayout,
+  getGameSummaryDepths,
   getGameSummaryLayout,
   getLevelSelectGridLayout,
   getMenuPanelLayout,
@@ -66,19 +68,27 @@ describe("editor layout", () => {
   it("keeps the editor goal controls and stats left of the action cluster", () => {
     const controls = getEditorBottomControlLayout();
     const actions = getEditorBottomActionLayout();
-    const statSlots = getEditorHudStatSlots();
-    const rightMostStat = Math.max(...statSlots.map((slot) => slot.valueX + slot.width));
     const goalRightEdge = controls.goalStepperX + controls.goalStepperWidth * 2 + controls.goalStepperGap;
 
     expect(goalRightEdge).toBeLessThan(actions.contentX);
-    expect(rightMostStat).toBeLessThan(actions.contentX);
+    expect(controls.goalValueX).toBeLessThan(controls.goalStepperX);
   });
 
-  it("defines HUD stat slots for read-only editor stats", () => {
-    const slots = getEditorHudStatSlots();
+  it("pads editor budget field text away from the top-left edge", () => {
+    const controls = getEditorBottomControlLayout();
 
-    expect(slots.map((slot) => slot.key)).toEqual(["fires", "structures", "shape"]);
-    expect(slots.every((slot) => slot.labelX >= HUD_ORIGIN.x)).toBe(true);
+    expect(controls.budgetButtonWidth).toBeLessThanOrEqual(controls.groupWidth);
+    expect(controls.budgetTextOffsetX).toBeGreaterThan(0);
+    expect(controls.budgetTextOffsetY).toBeGreaterThan(0);
+    expect(Number.parseInt(controls.budgetFontSize, 10)).toBeLessThanOrEqual(20);
+  });
+
+  it("sizes the editor overlay dialog so budget copy fits inside the popup", () => {
+    const overlay = getEditorOverlayLayout();
+
+    expect(overlay.inputDialogHeight).toBeGreaterThanOrEqual(140);
+    expect(overlay.inputWrapWidth).toBeLessThan(overlay.inputDialogWidth);
+    expect(overlay.inputTextY).toBeGreaterThan(overlay.inputDialogY + 24);
   });
 });
 
@@ -94,7 +104,17 @@ describe("game HUD content", () => {
     const stats = getGameBottomStats(makeLevel(), state);
 
     expect(stats.map((item) => item.key)).toEqual(["goal", "destroyed", "score", "medal", "hay", "tnt"]);
+    expect(stats.map((item) => item.label)).toEqual(["GOAL", "DESTROYED", "SCORE", "RANK", "HAY", "TNT"]);
     expect(stats.map((item) => item.value)).toEqual(["50%", "100%", "880", "GOLD", "4", "2"]);
+    expect(stats.find((item) => item.key === "medal")?.color).toBe("#f4d35e");
+  });
+
+  it("hides the medal slot copy when no medal is earned", () => {
+    const stats = getGameBottomStats(makeLevel(), createSimulation(makeLevel(), 3));
+    const medal = stats.find((item) => item.key === "medal");
+
+    expect(medal?.label).toBe("");
+    expect(medal?.value).toBe("");
   });
 
   it("removes read-only run copy from the gameplay sidebar", () => {
@@ -113,16 +133,18 @@ describe("game HUD content", () => {
     const slots = getGameHudStatSlots();
     const lastSlot = slots[slots.length - 1];
     const haySlot = slots.find((slot) => slot.key === "hay");
+    const destroyedSlot = slots.find((slot) => slot.key === "destroyed");
+    const scoreSlot = slots.find((slot) => slot.key === "score");
 
     expect(lastSlot.valueX + lastSlot.width).toBeLessThanOrEqual(SIDEBAR_ORIGIN.x);
     expect(haySlot?.labelY).toBeGreaterThan(HUD_ORIGIN.y + 98);
+    expect(scoreSlot?.labelX).toBeGreaterThan((destroyedSlot?.labelX ?? 0) + (destroyedSlot?.width ?? 0) + 12);
   });
 
-  it("provides explicit progress markers for pass and medal thresholds", () => {
+  it("provides pass and medal threshold markers", () => {
     const markers = getGameProgressMarkers(HUD_ORIGIN.x + 22, 676, 0.7);
 
     expect(markers.map((marker) => marker.key)).toEqual(["pass", "bronze", "silver", "gold"]);
-    expect(markers[0]?.label).toBe("PASS");
     expect(markers[3]?.x).toBeLessThanOrEqual(HUD_ORIGIN.x + 22 + 676);
   });
 
@@ -145,15 +167,15 @@ describe("game HUD content", () => {
     expect(layout.buttonX).toBeGreaterThanOrEqual(layout.dialogX);
     expect(layout.buttonX + layout.buttonWidth).toBeLessThanOrEqual(layout.dialogX + layout.dialogWidth);
     expect(layout.thirdButtonY + layout.buttonHeight).toBeLessThanOrEqual(layout.dialogY + layout.dialogHeight);
+    expect(layout.summaryContentBottomY).toBeLessThan(layout.firstButtonY);
   });
-});
 
-describe("editor HUD content", () => {
-  it("moves read-only editor status into bottom stats", () => {
-    const stats = getEditorBottomStats(makeLevel());
+  it("draws the summary overlay above regular gameplay controls", () => {
+    const depths = getGameSummaryDepths();
 
-    expect(stats.map((item) => item.key)).toEqual(["fires", "structures", "shape"]);
-    expect(stats.find((item) => item.key === "shape")?.value).toBe("VALID");
+    expect(depths.overlay).toBeGreaterThan(0);
+    expect(depths.text).toBeGreaterThan(depths.overlay);
+    expect(depths.buttons).toBeGreaterThan(depths.text);
   });
 });
 
@@ -166,20 +188,13 @@ describe("level select layout", () => {
     expect(clampLevelSelectScroll(14, layout.maxScroll + 40)).toBe(layout.maxScroll);
   });
 
-  it("uses larger stat typography for level tiles", () => {
-    const style = getLevelCardStatsStyle();
-
-    expect(style.fontSize).toBe("15px");
-    expect(style.lineSpacing).toBe(4);
-  });
-
-  it("uses only goal, hay, and tnt in the level tile stats block", () => {
+  it("removes stat copy from the level tile body", () => {
     const stats = getLevelCardStatsText({
       level: makeLevel({ completionPct: 0.7, resourceBudget: { hayCells: 9, tntCount: 2 } }),
       source: "built-in"
     });
 
-    expect(stats).toBe(["GOAL 70%", "HAY 9", "TNT 2"].join("\n"));
+    expect(stats).toBe("");
     expect(stats).not.toContain("BUILT-IN");
     expect(stats).not.toContain("CUSTOM");
   });
@@ -192,6 +207,10 @@ describe("level select layout", () => {
     expect(leftMargin).toBe(rightMargin);
     expect(layout.contentX + layout.contentWidth).toBeLessThanOrEqual(SIDEBAR_ORIGIN.x + SIDEBAR_WIDTH);
   });
+
+  it("uses the shortened sidebar copy under playable levels", () => {
+    expect(getLevelSelectSidebarCopy()).toBe("Pick a level or import from a json file.");
+  });
 });
 
 describe("menu layout", () => {
@@ -202,5 +221,6 @@ describe("menu layout", () => {
     expect(layout.hasHudFrame).toBe(false);
     expect(layout.contentWidth).toBeGreaterThan(MAP_SIZE);
     expect(layout.buttonX + layout.buttonWidth / 2).toBe(layout.titleCenterX);
+    expect(layout.footnoteX).toBe(CANVAS_CENTER_X);
   });
 });

@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import { drawMenuFrame } from "../ui/board-renderer";
 import { getMenuPanelLayout } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
+import { PIXEL_FONT_FAMILY, pixelFontSize } from "../ui/typography";
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -15,8 +16,8 @@ export class MenuScene extends Phaser.Scene {
 
     this.add
       .text(layout.titleCenterX, layout.contentY + 86, "BURN THE", {
-        fontFamily: "Courier New",
-        fontSize: "38px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(38),
         fontStyle: "bold",
         color: "#e9bb42",
         resolution: 2
@@ -25,8 +26,8 @@ export class MenuScene extends Phaser.Scene {
 
     this.add
       .text(layout.titleCenterX, layout.contentY + 146, "VILLAGE", {
-        fontFamily: "Courier New",
-        fontSize: "66px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(66),
         fontStyle: "bold",
         color: "#fce7b2",
         stroke: "#7b2e17",
@@ -37,8 +38,8 @@ export class MenuScene extends Phaser.Scene {
 
     this.add
       .text(layout.titleCenterX, layout.contentY + 220, "LAY THE TRAIL. LIGHT THE FUSE.\nLEAVE NOTHING STANDING.", {
-        fontFamily: "Courier New",
-        fontSize: "18px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(18),
         color: "#bfa16e",
         align: "center",
         resolution: 2,
@@ -70,11 +71,11 @@ export class MenuScene extends Phaser.Scene {
 
     this.add
       .text(layout.footnoteX, layout.footnoteY, "By Davis Wang", {
-        fontFamily: "Courier New",
-        fontSize: "14px",
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(14),
         color: "#bfa16e",
         resolution: 2
       })
-      .setOrigin(1, 1);
+      .setOrigin(0.5, 1);
   }
 }
