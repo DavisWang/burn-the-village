@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getGrassTextureFrame, getStructureTextureFrame } from "../src/ui/board-textures";
-import { getPixelButtonLayerOrder } from "../src/ui/pixel-button-order";
+import { getPixelButtonLayerOrder, getPixelButtonSelectionOutlineMetrics } from "../src/ui/pixel-button-order";
 import { getRankDisplay } from "../src/ui/rank-display";
 
 describe("board textures", () => {
@@ -41,5 +41,12 @@ describe("pixel button layering", () => {
 
     expect(order.indexOf("selectionOutline")).toBeGreaterThan(order.indexOf("panel"));
     expect(order.indexOf("selectionOutline")).toBeGreaterThan(order.indexOf("highlight"));
+  });
+
+  it("uses a thicker near-edge outline so selected buttons stay visible", () => {
+    const outline = getPixelButtonSelectionOutlineMetrics();
+
+    expect(outline.inset).toBeLessThanOrEqual(2);
+    expect(outline.strokeWidth).toBeGreaterThanOrEqual(3);
   });
 });

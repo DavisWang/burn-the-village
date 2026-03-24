@@ -196,14 +196,14 @@ export function getEditorBottomControlLayout() {
     width,
     nameLabelY: HUD_ORIGIN.y + 18,
     nameValueY: HUD_ORIGIN.y + 48,
-    groupLabelY: HUD_ORIGIN.y + 80,
-    groupControlY: HUD_ORIGIN.y + 100,
+    groupLabelY: HUD_ORIGIN.y + 72,
+    groupControlY: HUD_ORIGIN.y + 104,
     groupWidth,
     groupGap,
     budgetButtonWidth,
-    budgetTextOffsetX: 2,
-    budgetTextOffsetY: 2,
-    budgetFontSize: "20px",
+    budgetTextOffsetX: 3,
+    budgetTextOffsetY: 3,
+    budgetFontSize: "18px",
     goalValueX: goalStepperX - 14,
     goalStepperX,
     goalStepperWidth,
@@ -213,7 +213,7 @@ export function getEditorBottomControlLayout() {
 
 export function getEditorOverlayLayout() {
   const inputDialogWidth = 392;
-  const inputDialogHeight = 146;
+  const inputDialogHeight = 188;
   const inputDialogX = CANVAS_CENTER_X - inputDialogWidth / 2;
   const inputDialogY = 238;
 
@@ -229,6 +229,13 @@ export function getEditorOverlayLayout() {
     transientDialogWidth: 420,
     transientDialogHeight: 72,
     transientTextY: 166
+  };
+}
+
+export function getEditorOverlayDepths() {
+  return {
+    overlay: 90,
+    text: 91
   };
 }
 
@@ -323,6 +330,7 @@ export function getGameSidebarLayout() {
     speedRowX,
     speedButtonWidth,
     speedLabelCenterX: SIDEBAR_ORIGIN.x + Math.floor(SIDEBAR_WIDTH / 2),
+    speedLabelMaxWidth: contentWidth - speedButtonWidth * 2 - 16,
     sectionLabelX: contentX,
     actionX: contentX,
     actionHeight,
@@ -337,8 +345,8 @@ export function getGameSummaryLayout() {
   const dialogX = CANVAS_CENTER_X - dialogWidth / 2;
   const dialogY = 206;
   const titleY = dialogY + 54;
-  const statsY = dialogY + 102;
-  const rankY = dialogY + 148;
+  const statsY = dialogY + 118;
+  const rankY = dialogY + 156;
   const buttonWidth = 240;
   const buttonHeight = 48;
   const buttonX = CANVAS_CENTER_X - buttonWidth / 2;
@@ -378,7 +386,7 @@ export function getGameProgressMarkers(meterX: number, meterWidth: number, compl
   const valueX = (value: number) => meterX + meterWidth * value;
 
   return [
-    { key: "pass", label: "PASS", x: valueX(completionPct), color: "#e9bb42" },
+    { key: "pass", label: "PASS", x: valueX(completionPct), color: "#68bfd6" },
     { key: "bronze", label: "BRONZE", x: valueX(0.8), color: "#c58f52" },
     { key: "silver", label: "SILVER", x: valueX(0.9), color: "#d8d1c4" },
     { key: "gold", label: "GOLD", x: valueX(1), color: "#f4d35e" }

@@ -16,6 +16,7 @@ import {
   getEditorBottomControlLayout,
   clampLevelSelectScroll,
   getEditorBottomActionLayout,
+  getEditorOverlayDepths,
   getEditorOverlayLayout,
   getEditorSidebarLayout,
   getGameHudStatSlots,
@@ -80,15 +81,23 @@ describe("editor layout", () => {
     expect(controls.budgetButtonWidth).toBeLessThanOrEqual(controls.groupWidth);
     expect(controls.budgetTextOffsetX).toBeGreaterThan(0);
     expect(controls.budgetTextOffsetY).toBeGreaterThan(0);
-    expect(Number.parseInt(controls.budgetFontSize, 10)).toBeLessThanOrEqual(20);
+    expect(Number.parseInt(controls.budgetFontSize, 10)).toBeLessThanOrEqual(18);
+    expect(controls.groupControlY - controls.groupLabelY).toBeGreaterThanOrEqual(30);
   });
 
   it("sizes the editor overlay dialog so budget copy fits inside the popup", () => {
     const overlay = getEditorOverlayLayout();
 
-    expect(overlay.inputDialogHeight).toBeGreaterThanOrEqual(140);
+    expect(overlay.inputDialogHeight).toBeGreaterThanOrEqual(180);
     expect(overlay.inputWrapWidth).toBeLessThan(overlay.inputDialogWidth);
     expect(overlay.inputTextY).toBeGreaterThan(overlay.inputDialogY + 24);
+  });
+
+  it("draws editor overlays above the rest of the editor UI", () => {
+    const depths = getEditorOverlayDepths();
+
+    expect(depths.overlay).toBeGreaterThan(0);
+    expect(depths.text).toBeGreaterThan(depths.overlay);
   });
 });
 
@@ -145,6 +154,8 @@ describe("game HUD content", () => {
     const markers = getGameProgressMarkers(HUD_ORIGIN.x + 22, 676, 0.7);
 
     expect(markers.map((marker) => marker.key)).toEqual(["pass", "bronze", "silver", "gold"]);
+    expect(markers[0]?.color).toBe("#68bfd6");
+    expect(markers[0]?.color).not.toBe(markers[3]?.color);
     expect(markers[3]?.x).toBeLessThanOrEqual(HUD_ORIGIN.x + 22 + 676);
   });
 
@@ -159,6 +170,7 @@ describe("game HUD content", () => {
     expect(leftMargin).toBe(rightMargin);
     expect(brushLeftMargin).toBe(brushRightMargin);
     expect(layout.actionBottomY + layout.actionHeight).toBeLessThanOrEqual(SIDEBAR_ORIGIN.y + MAP_SIZE);
+    expect(layout.speedLabelMaxWidth).toBeGreaterThan(40);
   });
 
   it("keeps the summary button stack inside the summary dialog", () => {

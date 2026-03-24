@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 
 import { COLORS } from "../game/constants";
-import { getPixelButtonLayerOrder } from "./pixel-button-order";
+import { getPixelButtonLayerOrder, getPixelButtonSelectionOutlineMetrics } from "./pixel-button-order";
 import { PIXEL_FONT_FAMILY, PIXEL_FONT_SIZE_STEP } from "./typography";
 
 type PixelButtonOptions = {
@@ -35,11 +35,12 @@ export class PixelButton extends Phaser.GameObjects.Container {
     this.onClick = options.onClick;
     this.buttonWidth = options.width;
     this.baseFontSize = Number.parseInt(options.fontSize ?? "18", 10) + PIXEL_FONT_SIZE_STEP;
+    const outline = getPixelButtonSelectionOutlineMetrics();
 
     this.selectionOutline = options.scene.add
-      .rectangle(4, 4, options.width - 8, options.height - 8)
+      .rectangle(outline.inset, outline.inset, options.width - outline.inset * 2, options.height - outline.inset * 2)
       .setOrigin(0)
-      .setStrokeStyle(2, COLORS.frameLight)
+      .setStrokeStyle(outline.strokeWidth, COLORS.frameLight)
       .setVisible(false);
     this.shadow = options.scene.add
       .rectangle(4, 6, options.width, options.height, 0x090604)
@@ -104,7 +105,7 @@ export class PixelButton extends Phaser.GameObjects.Container {
 
   private redraw(hovered: boolean) {
     this.selectionOutline.setVisible(this.selected);
-    this.selectionOutline.setStrokeStyle(2, this.enabled ? COLORS.frameLight : 0x8b7652);
+    this.selectionOutline.setStrokeStyle(getPixelButtonSelectionOutlineMetrics().strokeWidth, this.enabled ? COLORS.frameLight : 0x8b7652);
     this.selectionOutline.setAlpha(this.selected ? (this.enabled ? 0.85 : 0.45) : 0);
 
     if (!this.enabled) {

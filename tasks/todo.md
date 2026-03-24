@@ -29,6 +29,13 @@
 
 ## Review
 
+- Split the gameplay summary into separate title/body/rank text anchors so `Rank: Gold` no longer collides with the score line, and kept the whole modal content above the button stack.
+- Increased the editor bottom-row label-to-field gap, reduced and re-padded the hay/TNT field text again, and raised the editor input dialog height so the level-name prompt no longer clips `Esc cancels`.
+- Added explicit editor overlay depths so editor popups render above sidebar/button controls instead of being clipped by them.
+- Strengthened the shared selected-outline contract with near-edge inset and thicker stroke metrics, and added tests for both outline order and outline strength so the hay brush selected state does not quietly regress again.
+- Added speed-label fitting between the `-` / `+` buttons so `SLOWEST` / `FASTEST` shrink to fit instead of clipping the steppers.
+- Changed the pass-threshold marker color away from gold to a teal-blue to avoid reading as another medal tier.
+- Re-verified with `npm test` and `npm run build`.
 - Reworked structure tiles to read more like roofs instead of flat brown blocks, with roof highlight/shadow bands, a ridge line, and darker wall/eave detail across the board and thumbnails.
 - Replaced the green checkerboard grass with a subtler grassy texture driven by deterministic patches and blade accents so the field keeps variation without loud noise.
 - Enlarged the bronze/silver/gold threshold badges above the destruction meter and shifted them from plain dots to medal-like badges.

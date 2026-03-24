@@ -11,3 +11,4 @@
 - When the chosen font family is correct but still reads too small, change the global size step in one place instead of tweaking individual scenes. Then re-check constrained screens specifically for overflow, because size regressions will show up there first.
 - In fixed-size pixel UI controls, centered text is not enough. Large numeric/button labels need explicit internal x/y padding and a font-size cap so glyphs do not clip against the top-left edge after a font change.
 - In Phaser UI, selection outlines and modal overlays need explicit draw order. If a stateful border or dialog should sit on top, encode the layer order in a shared helper and test it instead of assuming creation order will hold after refactors.
+- If a selected-state outline has regressed more than once, stop relying on visual memory. Lock both the layer order and the outline thickness/inset in pure tests so refactors cannot silently weaken or bury the selected state again.

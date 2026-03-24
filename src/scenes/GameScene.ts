@@ -53,6 +53,7 @@ export class GameScene extends Phaser.Scene {
   private boardGraphics!: Phaser.GameObjects.Graphics;
   private hudGraphics!: Phaser.GameObjects.Graphics;
   private infoText!: Phaser.GameObjects.Text;
+  private summaryTitleText!: Phaser.GameObjects.Text;
   private summaryText!: Phaser.GameObjects.Text;
   private summaryRankText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
@@ -145,6 +146,19 @@ export class GameScene extends Phaser.Scene {
         })
         .setOrigin(0, 0);
     });
+
+    this.summaryTitleText = this.add
+      .text(CANVAS_CENTER_X, getGameSummaryLayout().titleY, "", {
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(24),
+        color: "#fce7b2",
+        fontStyle: "bold",
+        align: "center",
+        resolution: 2
+      })
+      .setOrigin(0.5)
+      .setDepth(getGameSummaryDepths().text)
+      .setVisible(false);
 
     this.summaryText = this.add
       .text(CANVAS_CENTER_X, getGameSummaryLayout().statsY, "", {
@@ -390,6 +404,7 @@ export class GameScene extends Phaser.Scene {
 
   private hideSummary() {
     this.overlayGraphics.clear();
+    this.summaryTitleText.setVisible(false);
     this.summaryText.setVisible(false);
     this.summaryRankText.setVisible(false);
     this.summaryPrimaryButton.setVisible(false);
@@ -403,6 +418,7 @@ export class GameScene extends Phaser.Scene {
     drawSimulationBoard(this.boardGraphics, this.state, this.hoverCells);
     this.drawHud();
     this.speedText.setText(SPEED_OPTIONS[this.state.speedIndex].label);
+    this.fitSpeedLabel();
     getGameBottomStats(this.level, this.state).forEach((item) => {
       const text = this.hudStatTexts[item.key];
       const label = this.hudStatLabels[item.key];
@@ -476,6 +492,18 @@ export class GameScene extends Phaser.Scene {
     this.statusText.setPosition(HUD_ORIGIN.x + 22, HUD_ORIGIN.y + 124);
   }
 
+  private fitSpeedLabel() {
+    const layout = getGameSidebarLayout();
+    let fontSize = Number.parseInt(pixelFontSize(14), 10);
+    const minFontSize = Number.parseInt(pixelFontSize(8), 10);
+
+    this.speedText.setFontSize(`${fontSize}px`);
+    while (fontSize > minFontSize && this.speedText.width > layout.speedLabelMaxWidth) {
+      fontSize -= 1;
+      this.speedText.setFontSize(`${fontSize}px`);
+    }
+  }
+
   private showSummary() {
     const layout = getGameSummaryLayout();
 
@@ -496,10 +524,10 @@ export class GameScene extends Phaser.Scene {
     const success = this.state.outcome === "successResolved";
     const next = this.findNextLevelId();
     const rank = getRankDisplay(this.state.medal);
+    this.summaryTitleText.setText(success ? "Level Cleared!" : "Run Failed!");
+    this.summaryTitleText.setVisible(true);
     this.summaryText.setText(
       [
-        success ? "Level Cleared!" : "Run Failed!",
-        "",
         `Destruction: ${(this.state.destructionPct * 100).toFixed(0)}%`,
         `Score: ${this.state.score}`
       ].join("\n")

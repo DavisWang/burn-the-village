@@ -24,6 +24,7 @@ import { domBridge } from "../ui/dom-bridge";
 import {
   getEditorBottomActionLayout,
   getEditorBottomControlLayout,
+  getEditorOverlayDepths,
   getEditorOverlayLayout,
   getEditorSidebarLayout
 } from "../ui/layout";
@@ -77,6 +78,7 @@ export class EditorScene extends Phaser.Scene {
 
     this.boardGraphics = this.add.graphics();
     this.overlayGraphics = this.add.graphics();
+    this.overlayGraphics.setDepth(getEditorOverlayDepths().overlay);
     this.overlayText = this.add
       .text(CANVAS_CENTER_X, 330, "", {
         fontFamily: PIXEL_FONT_FAMILY,
@@ -87,6 +89,7 @@ export class EditorScene extends Phaser.Scene {
         wordWrap: { width: 360 }
       })
       .setOrigin(0.5)
+      .setDepth(getEditorOverlayDepths().text)
       .setVisible(false);
 
     this.buildSidebar();
