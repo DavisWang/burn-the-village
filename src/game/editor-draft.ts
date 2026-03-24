@@ -1,7 +1,14 @@
 import { GRID_SIZE } from "./constants";
 import { validateLevel } from "./level-io";
 import { createStructure } from "./structureCatalog";
-import type { EditorTool, LevelDefinition, Point, StructureDefinition } from "./types";
+import type {
+  EditorTool,
+  LevelDefinition,
+  Point,
+  StructureDefinition,
+  TerrainTile,
+  TerrainType
+} from "./types";
 
 function clonePoint(point: Point): Point {
   return { x: point.x, y: point.y };
@@ -15,12 +22,19 @@ function cloneStructure(structure: StructureDefinition): StructureDefinition {
   };
 }
 
+function cloneTerrainTile(tile: TerrainTile): TerrainTile {
+  return {
+    ...tile
+  };
+}
+
 export function cloneLevel(level: LevelDefinition): LevelDefinition {
   return {
     ...level,
     resourceBudget: { ...level.resourceBudget },
     fireSources: level.fireSources.map(clonePoint),
-    structures: level.structures.map(cloneStructure)
+    structures: level.structures.map(cloneStructure),
+    terrainTiles: (level.terrainTiles ?? []).map(cloneTerrainTile)
   };
 }
 
@@ -32,7 +46,8 @@ export function createBlankLevel(id = "custom-level"): LevelDefinition {
     resourceBudget: { hayCells: 56, tntCount: 2 },
     completionPct: 0.6,
     fireSources: [{ x: 2, y: 2 }],
-    structures: [createStructure("hut-1", "hut", { x: 24, y: 24 })]
+    structures: [createStructure("hut-1", "hut", { x: 24, y: 24 })],
+    terrainTiles: []
   };
 }
 
@@ -51,10 +66,15 @@ export function buildOccupancy(level: LevelDefinition): Map<string, string> {
   return occupied;
 }
 
+export function buildTerrainMap(level: LevelDefinition): Map<string, TerrainType> {
+  return new Map((level.terrainTiles ?? []).map((tile) => [`${tile.x},${tile.y}`, tile.type]));
+}
+
 export function toggleFireSource(level: LevelDefinition, point: Point): LevelDefinition {
   const next = cloneLevel(level);
   const index = next.fireSources.findIndex((source) => source.x === point.x && source.y === point.y);
   const occupied = buildOccupancy(next);
+  const terrain = buildTerrainMap(next);
   const key = `${point.x},${point.y}`;
   if (index >= 0) {
     next.fireSources.splice(index, 1);
@@ -63,7 +83,7 @@ export function toggleFireSource(level: LevelDefinition, point: Point): LevelDef
     }
     return next;
   }
-  if (!occupied.has(key)) {
+  if (!occupied.has(key) && !terrain.has(key)) {
     next.fireSources.push(clonePoint(point));
   }
   return next;
@@ -77,6 +97,7 @@ export function placeStructure(
   const next = cloneLevel(level);
   const structure = createStructure(`${type}-${Date.now()}-${Math.random()}`, type, point);
   const occupied = buildOccupancy(next);
+  const terrain = buildTerrainMap(next);
 
   if (
     structure.origin.x + structure.size.x > GRID_SIZE ||
@@ -87,13 +108,31 @@ export function placeStructure(
 
   for (let y = structure.origin.y; y < structure.origin.y + structure.size.y; y += 1) {
     for (let x = structure.origin.x; x < structure.origin.x + structure.size.x; x += 1) {
-      if (occupied.has(`${x},${y}`)) {
+      const key = `${x},${y}`;
+      if (occupied.has(key) || terrain.has(key)) {
         return next;
       }
     }
   }
 
   next.structures.push(structure);
+  return next;
+}
+
+export function paintTerrain(level: LevelDefinition, type: TerrainType, point: Point): LevelDefinition {
+  const next = cloneLevel(level);
+  const occupied = buildOccupancy(next);
+  const key = `${point.x},${point.y}`;
+  if (occupied.has(key)) {
+    return next;
+  }
+
+  const existing = next.terrainTiles.findIndex((tile) => tile.x === point.x && tile.y === point.y);
+  if (existing >= 0) {
+    next.terrainTiles[existing] = { x: point.x, y: point.y, type };
+  } else {
+    next.terrainTiles.push({ x: point.x, y: point.y, type });
+  }
   return next;
 }
 
@@ -116,7 +155,10 @@ export function removeAt(level: LevelDefinition, point: Point): LevelDefinition 
   );
   if (structure) {
     next.structures = next.structures.filter((item) => item.id !== structure.id);
+    return next;
   }
+
+  next.terrainTiles = next.terrainTiles.filter((tile) => tile.x !== point.x || tile.y !== point.y);
   return next;
 }
 

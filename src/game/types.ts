@@ -1,7 +1,17 @@
 export type RunOutcomeState = "active" | "successLocked" | "successResolved" | "failed";
 export type StructureType = "hut" | "house" | "hall";
 export type ToolKind = "hay" | "tnt";
-export type EditorTool = "fire" | "hut" | "house" | "hall" | "erase";
+export type TerrainType = "deepWater" | "wetTerrain" | "wall";
+export type CellTerrain = "ground" | TerrainType;
+export type EditorTool =
+  | "fire"
+  | "hut"
+  | "house"
+  | "hall"
+  | "deepWater"
+  | "wetTerrain"
+  | "wall"
+  | "erase";
 export type Medal = "none" | "bronze" | "silver" | "gold";
 export type CellMaterial = "empty" | "fireSource" | "hay" | "tnt" | "structure";
 export type CellLifecycle = "idle" | "burning" | "ash" | "fuse" | "spent" | "rubble";
@@ -24,6 +34,10 @@ export interface StructureDefinition {
   maxHp: number;
 }
 
+export interface TerrainTile extends Point {
+  type: TerrainType;
+}
+
 export interface LevelDefinition {
   id: string;
   name: string;
@@ -32,14 +46,16 @@ export interface LevelDefinition {
   completionPct: number;
   fireSources: Point[];
   structures: StructureDefinition[];
+  terrainTiles: TerrainTile[];
 }
 
 export interface ExportedLevelFile {
-  version: 1;
+  version: 2;
   level: LevelDefinition;
 }
 
 export interface GridCell {
+  terrain: CellTerrain;
   material: CellMaterial;
   lifecycle: CellLifecycle;
   hp: number;

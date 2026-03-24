@@ -2,6 +2,7 @@ import { SPEED_OPTIONS } from "./constants";
 import { getBrushFootprint } from "./brushes";
 import { createRng, nextSeed } from "./rng";
 import type {
+  CellTerrain,
   GridCell,
   LevelDefinition,
   Medal,
@@ -9,6 +10,11 @@ import type {
   SimulationState
 } from "./types";
 
+/*
+ * This module is the authoritative gameplay rules engine.
+ * Scene code should treat these helpers as the only place that decides ignition,
+ * burn/fuse timing, scoring, medals, and win/fail transitions.
+ */
 const HAY_BURN_TICKS = 3;
 const TNT_FUSE_TICKS = 2;
 const EXPLOSION_TTL = 3;
@@ -21,6 +27,7 @@ const MEDAL_DESTRUCTION_THRESHOLDS = {
 
 function createEmptyCell(): GridCell {
   return {
+    terrain: "ground",
     material: "empty",
     lifecycle: "idle",
     hp: 0,
@@ -35,15 +42,30 @@ function createEmptyCell(): GridCell {
 
 function isPlaceableGround(cell: GridCell): boolean {
   return (
-    cell.material === "empty" ||
-    (cell.material === "hay" && cell.lifecycle === "ash") ||
-    (cell.material === "tnt" && cell.lifecycle === "spent") ||
-    (cell.material === "structure" && cell.lifecycle === "rubble")
+    !isTerrainBlocked(cell.terrain) &&
+    (
+      cell.material === "empty" ||
+      (cell.material === "hay" && cell.lifecycle === "ash") ||
+      (cell.material === "tnt" && cell.lifecycle === "spent") ||
+      (cell.material === "structure" && cell.lifecycle === "rubble")
+    )
   );
+}
+
+function isTerrainBlocked(terrain: CellTerrain): boolean {
+  return terrain === "deepWater" || terrain === "wall";
+}
+
+function isWetTerrain(terrain: CellTerrain): boolean {
+  return terrain === "wetTerrain";
 }
 
 function cloneGrid(grid: GridCell[][]): GridCell[][] {
   return grid.map((row) => row.map((cell) => ({ ...cell })));
+}
+
+function cloneTerrain(grid: GridCell[][]): CellTerrain[][] {
+  return grid.map((row) => row.map((cell) => cell.terrain));
 }
 
 function computeMedal(destructionPct: number): Medal {
@@ -104,9 +126,14 @@ function buildInitialGrid(level: LevelDefinition): {
     Array.from({ length: level.gridSize }, createEmptyCell)
   );
 
+  for (const terrain of level.terrainTiles ?? []) {
+    grid[terrain.y][terrain.x].terrain = terrain.type;
+  }
+
   for (const source of level.fireSources) {
     grid[source.y][source.x] = {
       ...createEmptyCell(),
+      terrain: grid[source.y][source.x].terrain,
       material: "fireSource",
       lifecycle: "burning"
     };
@@ -118,6 +145,7 @@ function buildInitialGrid(level: LevelDefinition): {
       for (let x = structure.origin.x; x < structure.origin.x + structure.size.x; x += 1) {
         grid[y][x] = {
           ...createEmptyCell(),
+          terrain: grid[y][x].terrain,
           material: "structure",
           structureId: structure.id,
           structureType: structure.type,
@@ -176,11 +204,56 @@ function countCombustibleNeighbors(grid: GridCell[][], point: Point): number {
   return cardinalNeighbors(point, grid.length).reduce((count, neighbor) => {
     const cell = grid[neighbor.y][neighbor.x];
     const combustible =
-      cell.material === "hay" ||
-      cell.material === "fireSource" ||
-      cell.material === "structure";
+      !isTerrainBlocked(cell.terrain) &&
+      (
+        cell.material === "hay" ||
+        cell.material === "fireSource" ||
+        cell.material === "structure"
+      );
     return count + (combustible ? 1 : 0);
   }, 0);
+}
+
+function traceRayPoints(start: Point, end: Point): Point[] {
+  const points: Point[] = [];
+  let x0 = start.x;
+  let y0 = start.y;
+  const x1 = end.x;
+  const y1 = end.y;
+  const dx = Math.abs(x1 - x0);
+  const sx = x0 < x1 ? 1 : -1;
+  const dy = -Math.abs(y1 - y0);
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+
+  while (x0 !== x1 || y0 !== y1) {
+    const e2 = err * 2;
+    if (e2 >= dy) {
+      err += dy;
+      x0 += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y0 += sy;
+    }
+    points.push({ x: x0, y: y0 });
+  }
+
+  return points;
+}
+
+function getBlastBlocker(
+  center: Point,
+  target: Point,
+  terrainGrid: CellTerrain[][]
+): { point: Point; terrain: CellTerrain } | null {
+  for (const point of traceRayPoints(center, target)) {
+    const terrain = terrainGrid[point.y][point.x];
+    if (isTerrainBlocked(terrain)) {
+      return { point, terrain };
+    }
+  }
+  return null;
 }
 
 function hasPendingIgnition(state: SimulationState): boolean {
@@ -201,6 +274,9 @@ function hasPendingIgnition(state: SimulationState): boolean {
 }
 
 function maybeTriggerFailure(state: SimulationState): SimulationState {
+  // Runs should not fail just because the player spent the last resource.
+  // Failure only happens once there is no transient fire left and nothing
+  // already placed can ignite on the next tick.
   if (
     state.outcome === "active" &&
     state.hayRemaining === 0 &&
@@ -279,6 +355,7 @@ export function applyHayBrush(
     }
     next.grid[y][x] = {
       ...createEmptyCell(),
+      terrain: cell.terrain,
       material: "hay"
     };
     next.hayRemaining -= 1;
@@ -303,6 +380,7 @@ export function placeTnt(state: SimulationState, point: Point): SimulationState 
   };
   next.grid[point.y][point.x] = {
     ...createEmptyCell(),
+    terrain: cell.terrain,
     material: "tnt"
   };
   return maybeTriggerFailure(updateMetrics(next));
@@ -313,6 +391,12 @@ export function stepSimulation(state: SimulationState): SimulationState {
     return state;
   }
 
+  // Tick order matters:
+  // 1. Read ignition opportunities from the previous state.
+  // 2. Apply new burn/fuse states onto the next grid.
+  // 3. Advance active burning/fusing cells.
+  // 4. Resolve explosions and chain reactions.
+  // 5. Recompute metrics and outcome transitions.
   const next: SimulationState = {
     ...state,
     tick: state.tick + 1,
@@ -334,9 +418,15 @@ export function stepSimulation(state: SimulationState): SimulationState {
       }
       for (const neighbor of cardinalNeighbors({ x, y }, state.level.gridSize)) {
         const target = state.grid[neighbor.y][neighbor.x];
+        if (isTerrainBlocked(target.terrain)) {
+          continue;
+        }
         if (target.material === "hay" && target.lifecycle === "idle") {
           const combustibles = countCombustibleNeighbors(state.grid, neighbor);
-          const chance = Math.min(0.95, 0.7 + Math.max(0, combustibles - 1) * 0.1);
+          const baseChance = Math.min(0.95, 0.7 + Math.max(0, combustibles - 1) * 0.1);
+          const chance = isWetTerrain(target.terrain)
+            ? Math.max(0.15, baseChance - 0.25)
+            : baseChance;
           if (rng() <= chance) {
             toIgniteHay.add(`${neighbor.x},${neighbor.y}`);
           }
@@ -404,11 +494,26 @@ export function stepSimulation(state: SimulationState): SimulationState {
 
   for (const center of explosions) {
     next.activeExplosions.push({ center, ttl: EXPLOSION_TTL });
+    const terrainGrid = cloneTerrain(next.grid);
     for (let y = center.y - EXPLOSION_RADIUS; y <= center.y + EXPLOSION_RADIUS; y += 1) {
       for (let x = center.x - EXPLOSION_RADIUS; x <= center.x + EXPLOSION_RADIUS; x += 1) {
         if (x < 0 || y < 0 || x >= next.level.gridSize || y >= next.level.gridSize) {
           continue;
         }
+        const blocker = getBlastBlocker(center, { x, y }, terrainGrid);
+        if (blocker) {
+          if (
+            blocker.terrain === "wall" &&
+            blocker.point.x === x &&
+            blocker.point.y === y
+          ) {
+            const wall = next.grid[y][x];
+            wall.terrain = "ground";
+            wall.scorch = 1;
+          }
+          continue;
+        }
+
         const target = next.grid[y][x];
         target.scorch = 1;
         if (target.material === "hay" && target.lifecycle === "idle") {

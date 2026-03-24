@@ -72,5 +72,6 @@ export function getGameBottomStats(level: LevelDefinition, state: SimulationStat
 }
 
 export function getGameSidebarLines(state: SimulationState): string[] {
+  void state;
   return [];
 }

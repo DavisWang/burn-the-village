@@ -2,6 +2,12 @@ import { BUILT_IN_LEVELS } from "./levels";
 import { cloneLevel, createBlankLevel } from "./editor-draft";
 import type { LevelCatalogEntry, LevelDefinition } from "./types";
 
+/*
+ * Runtime-only session state.
+ * This is intentionally in-memory: it lets the editor, level select, and
+ * gameplay scenes share built-ins, imports, and the current draft without
+ * pretending the project already has durable persistence.
+ */
 function slugify(value: string): string {
   return value
     .trim()

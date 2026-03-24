@@ -4,9 +4,16 @@ import type {
   LevelDefinition,
   Point,
   ResourceBudget,
-  StructureDefinition
+  StructureDefinition,
+  TerrainTile,
+  TerrainType
 } from "./types";
 
+/*
+ * This file is the level file boundary for the project.
+ * Keep the validation strict and the error messages user-facing because the
+ * editor/import flows surface these strings directly to players/authors.
+ */
 const MAX_RESOURCE_BUDGET = 999;
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -49,6 +56,14 @@ function isStructureDefinition(value: unknown): value is StructureDefinition {
     isInteger(value.maxHp) &&
     value.maxHp > 0
   );
+}
+
+function isTerrainType(value: unknown): value is TerrainType {
+  return value === "deepWater" || value === "wetTerrain" || value === "wall";
+}
+
+function isTerrainTile(value: unknown): value is TerrainTile {
+  return isObject(value) && isPoint(value) && isTerrainType(value.type);
 }
 
 export function validateLevel(level: LevelDefinition): string[] {
@@ -99,6 +114,14 @@ export function validateLevel(level: LevelDefinition): string[] {
     occupy(source.x, source.y, "fire source");
   }
 
+  for (const terrain of level.terrainTiles ?? []) {
+    if (terrain.x < 0 || terrain.x >= GRID_SIZE || terrain.y < 0 || terrain.y >= GRID_SIZE) {
+      errors.push(`Terrain tile at ${terrain.x},${terrain.y} is out of bounds.`);
+      continue;
+    }
+    occupy(terrain.x, terrain.y, `terrain:${terrain.type}`);
+  }
+
   for (const structure of level.structures) {
     if (structure.origin.x < 0 || structure.origin.y < 0) {
       errors.push(`Structure ${structure.id} starts out of bounds.`);
@@ -123,18 +146,24 @@ export function validateLevel(level: LevelDefinition): string[] {
 
 export function serializeLevel(level: LevelDefinition): string {
   const payload: ExportedLevelFile = {
-    version: 1,
+    version: 2,
     level
   };
   return JSON.stringify(payload, null, 2);
 }
 
 export function parseLevelFile(raw: string): LevelDefinition {
+  // Imported files must cross the same validation boundary as authored levels.
   const parsed = JSON.parse(raw) as unknown;
-  if (!isObject(parsed) || parsed.version !== 1 || !isObject(parsed.level)) {
+  if (
+    !isObject(parsed) ||
+    (parsed.version !== 1 && parsed.version !== 2) ||
+    !isObject(parsed.level)
+  ) {
     throw new Error("File is not a supported Burn the Village level.");
   }
   const level = parsed.level as Record<string, unknown>;
+  const terrainTilesRaw = parsed.version === 2 ? level.terrainTiles : [];
   if (
     typeof level.id !== "string" ||
     typeof level.name !== "string" ||
@@ -142,7 +171,8 @@ export function parseLevelFile(raw: string): LevelDefinition {
     !isResourceBudget(level.resourceBudget) ||
     typeof level.completionPct !== "number" ||
     !Array.isArray(level.fireSources) ||
-    !Array.isArray(level.structures)
+    !Array.isArray(level.structures) ||
+    !Array.isArray(terrainTilesRaw)
   ) {
     throw new Error("Level file is malformed.");
   }
@@ -164,6 +194,12 @@ export function parseLevelFile(raw: string): LevelDefinition {
         throw new Error("Invalid structure definition.");
       }
       return structure;
+    }),
+    terrainTiles: terrainTilesRaw.map((tile) => {
+      if (!isTerrainTile(tile)) {
+        throw new Error("Invalid terrain tile definition.");
+      }
+      return tile;
     })
   };
 

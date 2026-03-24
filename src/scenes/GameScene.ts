@@ -18,6 +18,7 @@ import {
 } from "../game/constants";
 import { BUILT_IN_LEVELS } from "../game/levels";
 import { getBrushFootprint } from "../game/brushes";
+import { getDefaultGameplayControls } from "../game/gameplay-controls";
 import { session } from "../game/session";
 import {
   applyHayBrush,
@@ -32,6 +33,7 @@ import { drawPanelFrame, drawSimulationBoard } from "../ui/board-renderer";
 import { getGameBottomStats, getGameSidebarLines } from "../ui/hud-content";
 import {
   getGameHudStatSlots,
+  getGameProgressBarLayout,
   getGameProgressMarkers,
   getGameSidebarLayout,
   getGameSummaryDepths,
@@ -41,6 +43,11 @@ import { PixelButton } from "../ui/pixel-button";
 import { getRankDisplay } from "../ui/rank-display";
 import { PIXEL_FONT_FAMILY, pixelFontSize } from "../ui/typography";
 
+/*
+ * GameScene is mostly an orchestrator.
+ * It owns the active SimulationState and input/tick loop, but layout, rendering,
+ * HUD content, and gameplay rules all live in shared helpers.
+ */
 type GameSceneData = {
   levelId?: string;
   level?: LevelDefinition;
@@ -53,6 +60,7 @@ export class GameScene extends Phaser.Scene {
   private boardGraphics!: Phaser.GameObjects.Graphics;
   private hudGraphics!: Phaser.GameObjects.Graphics;
   private infoText!: Phaser.GameObjects.Text;
+  private progressLabelText!: Phaser.GameObjects.Text;
   private summaryTitleText!: Phaser.GameObjects.Text;
   private summaryText!: Phaser.GameObjects.Text;
   private summaryRankText!: Phaser.GameObjects.Text;
@@ -83,6 +91,13 @@ export class GameScene extends Phaser.Scene {
     }
     this.level = level;
     this.fromEditor = Boolean(data.fromEditor);
+    const controls = getDefaultGameplayControls();
+    this.tool = controls.tool;
+    this.brushIndex = controls.brushIndex;
+    this.hoverCells = controls.hoverCells;
+    this.accumulator = controls.accumulator;
+    this.toolButtons = null;
+    this.brushButtons = [];
     this.state = createSimulation(level);
   }
 
@@ -123,6 +138,18 @@ export class GameScene extends Phaser.Scene {
         wordWrap: { width: PANEL_WIDTH - 48 }
       })
       .setOrigin(0, 0);
+    const progressLayout = getGameProgressBarLayout();
+    this.progressLabelText = this.add
+      .text(progressLayout.centerX, progressLayout.labelY, "Progress", {
+        fontFamily: PIXEL_FONT_FAMILY,
+        fontSize: pixelFontSize(16),
+        color: "#fce7b2",
+        fontStyle: "bold",
+        stroke: "#2a1c12",
+        strokeThickness: 4,
+        resolution: 2
+      })
+      .setOrigin(0.5);
     this.hudStatTexts = {};
     this.hudStatLabels = {};
     getGameHudStatSlots().forEach((slot) => {
@@ -453,6 +480,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawHud() {
+    // The HUD geometry is intentionally stable and mirrored by tests. If this
+    // layout changes, update the shared helpers/tests rather than only nudging
+    // values in-scene.
     const meterX = HUD_ORIGIN.x + 22;
     const meterY = HUD_ORIGIN.y + 68;
     const meterWidth = 676;
@@ -497,6 +527,8 @@ export class GameScene extends Phaser.Scene {
     let fontSize = Number.parseInt(pixelFontSize(14), 10);
     const minFontSize = Number.parseInt(pixelFontSize(8), 10);
 
+    // `SLOWEST` and `FASTEST` are the limiting cases; fit within the gap between
+    // the `-` and `+` buttons instead of letting the label clip.
     this.speedText.setFontSize(`${fontSize}px`);
     while (fontSize > minFontSize && this.speedText.width > layout.speedLabelMaxWidth) {
       fontSize -= 1;

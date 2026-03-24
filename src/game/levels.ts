@@ -9,7 +9,8 @@ function level(
   tntCount: number,
   completionPct: number,
   fireSources: LevelDefinition["fireSources"],
-  structures: LevelDefinition["structures"]
+  structures: LevelDefinition["structures"],
+  terrainTiles: LevelDefinition["terrainTiles"] = []
 ): LevelDefinition {
   return {
     id,
@@ -18,7 +19,8 @@ function level(
     resourceBudget: { hayCells, tntCount },
     completionPct,
     fireSources,
-    structures
+    structures,
+    terrainTiles
   };
 }
 

@@ -28,7 +28,8 @@ function makeLevel(overrides: Partial<LevelDefinition> = {}): LevelDefinition {
         size: { x: 1, y: 1 },
         maxHp: 1
       }
-    ]
+    ],
+    terrainTiles: []
   };
   return {
     ...base,
@@ -154,6 +155,152 @@ describe("simulation rules", () => {
     expect(withTnt.grid[5][5].lifecycle).toBe("idle");
   });
 
+  it("rejects hay and TNT placement on deep water", () => {
+    const state = createSimulation(
+      makeLevel({
+        resourceBudget: { hayCells: 2, tntCount: 1 },
+        terrainTiles: [{ x: 4, y: 4, type: "deepWater" }]
+      }),
+      24
+    );
+
+    const withHay = applyHayBrush(state, { x: 4, y: 4 }, 0);
+    expect(withHay.hayRemaining).toBe(state.hayRemaining);
+    expect(withHay.grid[4][4].material).toBe("empty");
+    expect(withHay.grid[4][4].terrain).toBe("deepWater");
+
+    const withTnt = placeTnt(withHay, { x: 4, y: 4 });
+    expect(withTnt.tntRemaining).toBe(withHay.tntRemaining);
+    expect(withTnt.grid[4][4].material).toBe("empty");
+  });
+
+  it("reduces hay ignition chance on wet terrain under the seeded simulation", () => {
+    const dryState = createSimulation(
+      makeLevel({
+        resourceBudget: { hayCells: 1, tntCount: 0 }
+      }),
+      4
+    );
+    const wetState = createSimulation(
+      makeLevel({
+        resourceBudget: { hayCells: 1, tntCount: 0 },
+        terrainTiles: [{ x: 1, y: 0, type: "wetTerrain" }]
+      }),
+      4
+    );
+
+    const dryAfterTick = stepSimulation(applyHayBrush(dryState, { x: 1, y: 0 }, 0));
+    const wetAfterTick = stepSimulation(applyHayBrush(wetState, { x: 1, y: 0 }, 0));
+
+    expect(dryAfterTick.grid[0][1].lifecycle).toBe("burning");
+    expect(wetAfterTick.grid[0][1].lifecycle).toBe("idle");
+    expect(wetAfterTick.grid[0][1].terrain).toBe("wetTerrain");
+  });
+
+  it("rejects placement on intact walls and keeps them from igniting", () => {
+    const state = createSimulation(
+      makeLevel({
+        resourceBudget: { hayCells: 1, tntCount: 1 },
+        terrainTiles: [{ x: 1, y: 0, type: "wall" }],
+        structures: [
+          {
+            id: "s-1",
+            type: "hut",
+            origin: { x: 2, y: 0 },
+            size: { x: 1, y: 1 },
+            maxHp: 1
+          }
+        ]
+      }),
+      25
+    );
+
+    const withHay = applyHayBrush(state, { x: 1, y: 0 }, 0);
+    expect(withHay.hayRemaining).toBe(state.hayRemaining);
+    expect(withHay.grid[0][1].terrain).toBe("wall");
+    expect(withHay.grid[0][1].material).toBe("empty");
+
+    const withTnt = placeTnt(withHay, { x: 1, y: 0 });
+    expect(withTnt.tntRemaining).toBe(withHay.tntRemaining);
+
+    const afterTick = stepSimulation(withTnt);
+    expect(afterTick.grid[0][1].terrain).toBe("wall");
+    expect(afterTick.grid[0][2].lifecycle).toBe("idle");
+  });
+
+  it("breaches walls hit by TNT and opens them for later placement", () => {
+    const state = createSimulation(
+      makeLevel({
+        resourceBudget: { hayCells: 1, tntCount: 1 },
+        terrainTiles: [{ x: 2, y: 0, type: "wall" }]
+      }),
+      26
+    );
+
+    const planted = placeTnt(state, { x: 1, y: 0 });
+    const afterFirstTick = stepSimulation(planted);
+    const afterSecondTick = stepSimulation(afterFirstTick);
+
+    expect(afterSecondTick.grid[0][2].terrain).toBe("ground");
+
+    const afterBreach = applyHayBrush(afterSecondTick, { x: 2, y: 0 }, 0);
+    expect(afterBreach.grid[0][2].material).toBe("hay");
+  });
+
+  it("does not let a single blast affect targets behind an intact wall", () => {
+    const state = createSimulation(
+      makeLevel({
+        resourceBudget: { hayCells: 0, tntCount: 1 },
+        fireSources: [{ x: 0, y: 1 }],
+        terrainTiles: [{ x: 2, y: 1, type: "wall" }],
+        structures: [
+          {
+            id: "s-1",
+            type: "hut",
+            origin: { x: 3, y: 1 },
+            size: { x: 1, y: 1 },
+            maxHp: 2
+          }
+        ]
+      }),
+      27
+    );
+
+    const planted = placeTnt(state, { x: 1, y: 1 });
+    const afterExplosion = stepSimulation(stepSimulation(planted));
+
+    expect(afterExplosion.grid[1][2].terrain).toBe("ground");
+    expect(afterExplosion.grid[1][3].hp).toBe(2);
+    expect(afterExplosion.grid[1][3].lifecycle).toBe("idle");
+  });
+
+  it("does not let TNT blast through deep water", () => {
+    const state = createSimulation(
+      makeLevel({
+        resourceBudget: { hayCells: 0, tntCount: 1 },
+        fireSources: [{ x: 0, y: 1 }],
+        terrainTiles: [{ x: 2, y: 1, type: "deepWater" }],
+        structures: [
+          {
+            id: "s-1",
+            type: "hut",
+            origin: { x: 3, y: 1 },
+            size: { x: 1, y: 1 },
+            maxHp: 2
+          }
+        ]
+      }),
+      28
+    );
+
+    const planted = placeTnt(state, { x: 1, y: 1 });
+    const afterExplosion = stepSimulation(stepSimulation(planted));
+
+    expect(afterExplosion.grid[1][2].terrain).toBe("deepWater");
+    expect(afterExplosion.grid[1][3].hp).toBe(2);
+    expect(afterExplosion.grid[1][3].lifecycle).toBe("idle");
+  });
+
   it("awards medals from destruction percentage thresholds", () => {
     const level = makeLevel({
       structures: [
@@ -204,8 +351,39 @@ describe("brush footprints", () => {
 });
 
 describe("level files", () => {
-  it("round-trips a valid level through JSON import/export", () => {
-    const level = makeLevel();
+  it("accepts version 1 level files by defaulting terrain to empty", () => {
+    const raw = JSON.stringify({
+      version: 1,
+      level: {
+        id: "v1-level",
+        name: "V1 LEVEL",
+        gridSize: 32,
+        resourceBudget: { hayCells: 4, tntCount: 1 },
+        completionPct: 0.5,
+        fireSources: [{ x: 0, y: 0 }],
+        structures: [
+          {
+            id: "s-1",
+            type: "hut",
+            origin: { x: 28, y: 28 },
+            size: { x: 1, y: 1 },
+            maxHp: 1
+          }
+        ]
+      }
+    });
+
+    expect(parseLevelFile(raw).terrainTiles).toEqual([]);
+  });
+
+  it("round-trips a valid version 2 level with terrain through JSON import/export", () => {
+    const level = makeLevel({
+      terrainTiles: [
+        { x: 3, y: 4, type: "deepWater" },
+        { x: 4, y: 4, type: "wetTerrain" },
+        { x: 5, y: 4, type: "wall" }
+      ]
+    });
     const parsed = parseLevelFile(serializeLevel(level));
     expect(parsed).toEqual(level);
   });
@@ -226,5 +404,24 @@ describe("level files", () => {
       })
     );
     expect(errors[0]).toContain("Overlap");
+  });
+
+  it("rejects duplicate terrain coordinates and terrain overlap with structures", () => {
+    const duplicateErrors = validateLevel(
+      makeLevel({
+        terrainTiles: [
+          { x: 10, y: 10, type: "deepWater" },
+          { x: 10, y: 10, type: "wall" }
+        ]
+      })
+    );
+    const overlapErrors = validateLevel(
+      makeLevel({
+        terrainTiles: [{ x: 28, y: 28, type: "wetTerrain" }]
+      })
+    );
+
+    expect(duplicateErrors[0]).toContain("Overlap");
+    expect(overlapErrors[0]).toContain("Overlap");
   });
 });

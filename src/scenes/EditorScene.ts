@@ -11,10 +11,9 @@ import {
   MAP_ORIGIN,
   MAP_SIZE,
   PANEL_WIDTH,
-  SIDEBAR_ORIGIN,
-  SIDEBAR_WIDTH
+  SIDEBAR_ORIGIN
 } from "../game/constants";
-import { cloneLevel, placeStructure, removeAt, toggleFireSource } from "../game/editor-draft";
+import { cloneLevel, paintTerrain, placeStructure, removeAt, toggleFireSource } from "../game/editor-draft";
 import { parseLevelFile, serializeLevel, validateLevel } from "../game/level-io";
 import { session } from "../game/session";
 import { getStructureStats } from "../game/structureCatalog";
@@ -39,6 +38,19 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+function isTerrainTool(tool: EditorTool): tool is Extract<EditorTool, "deepWater" | "wetTerrain" | "wall"> {
+  return tool === "deepWater" || tool === "wetTerrain" || tool === "wall";
+}
+
+function supportsDragPaint(tool: EditorTool): boolean {
+  return tool === "erase" || isTerrainTool(tool);
+}
+
+/*
+ * EditorScene edits a LevelDefinition draft and keeps that draft mirrored into
+ * the in-memory session so navigation/play-test flows preserve work within the
+ * current page load. Validation and file-shape rules still live in helpers.
+ */
 export class EditorScene extends Phaser.Scene {
   private static readonly MAX_RESOURCE_INPUT = 999;
   private draft!: LevelDefinition;
@@ -57,6 +69,7 @@ export class EditorScene extends Phaser.Scene {
   private budgetEntry: "hay" | "tnt" | null = null;
   private transientMessage: string | null = null;
   private transientMessageTimer: Phaser.Time.TimerEvent | null = null;
+  private lastDragCellKey: string | null = null;
 
   constructor() {
     super("EditorScene");
@@ -100,29 +113,35 @@ export class EditorScene extends Phaser.Scene {
 
   private buildSidebar() {
     const layout = getEditorSidebarLayout();
+    const toolSpecs: Array<{ tool: EditorTool; label: string; row: number; column: number }> = [
+      { tool: "fire", label: "FIRE", row: 0, column: 0 },
+      { tool: "hut", label: "HUT", row: 0, column: 1 },
+      { tool: "house", label: "HOUSE", row: 1, column: 0 },
+      { tool: "hall", label: "HALL", row: 1, column: 1 },
+      { tool: "deepWater", label: "WATER", row: 2, column: 0 },
+      { tool: "wetTerrain", label: "MARSH", row: 2, column: 1 },
+      { tool: "wall", label: "WALL", row: 3, column: 0 },
+      { tool: "erase", label: "ERASE", row: 3, column: 1 }
+    ];
 
-    const makeToolButton = (tool: EditorTool, label: string, row: number) =>
-      new PixelButton({
+    const buttons = {} as Record<EditorTool, PixelButton>;
+    toolSpecs.forEach(({ tool, label, row, column }) => {
+      buttons[tool] = new PixelButton({
         scene: this,
-        x: layout.contentX,
-        y: SIDEBAR_ORIGIN.y + 20 + row * 54,
-        width: layout.contentWidth,
-        height: 46,
+        x: layout.contentX + column * (layout.toolButtonWidth + layout.toolGap),
+        y: SIDEBAR_ORIGIN.y + 20 + row * (layout.toolButtonHeight + layout.toolRowGap),
+        width: layout.toolButtonWidth,
+        height: layout.toolButtonHeight,
         label,
-        fontSize: "24px",
+        fontSize: "18px",
         onClick: () => {
           this.tool = tool;
           this.renderScene();
         }
       });
+    });
 
-    this.toolButtons = {
-      fire: makeToolButton("fire", "FIRE SOURCE", 0),
-      hut: makeToolButton("hut", "SMALL HUT", 1),
-      house: makeToolButton("house", "HOUSE", 2),
-      hall: makeToolButton("hall", "HALL", 3),
-      erase: makeToolButton("erase", "ERASE", 4)
-    };
+    this.toolButtons = buttons;
   }
 
   private buildBottomControls() {
@@ -281,15 +300,31 @@ export class EditorScene extends Phaser.Scene {
     zone.on("pointermove", (pointer: Phaser.Input.Pointer) => {
       const point = this.pointerToGrid(pointer);
       this.hoverCells = point ? this.buildHoverCells(point) : [];
+      if (!pointer.isDown || !point || !supportsDragPaint(this.tool)) {
+        return;
+      }
+      const key = `${point.x},${point.y}`;
+      if (key === this.lastDragCellKey) {
+        return;
+      }
+      this.lastDragCellKey = key;
+      this.applyTool(point);
     });
     zone.on("pointerout", () => {
       this.hoverCells = [];
+      if (!this.input.activePointer.isDown) {
+        this.lastDragCellKey = null;
+      }
     });
     zone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       const point = this.pointerToGrid(pointer);
       if (point) {
+        this.lastDragCellKey = `${point.x},${point.y}`;
         this.applyTool(point);
       }
+    });
+    this.input.on("pointerup", () => {
+      this.lastDragCellKey = null;
     });
   }
 
@@ -370,7 +405,7 @@ export class EditorScene extends Phaser.Scene {
   }
 
   private buildHoverCells(point: Point): Point[] {
-    if (this.tool === "fire" || this.tool === "erase") {
+    if (this.tool === "fire" || this.tool === "erase" || isTerrainTool(this.tool)) {
       return [point];
     }
     const size = getStructureStats(this.tool).size;
@@ -390,6 +425,8 @@ export class EditorScene extends Phaser.Scene {
       this.draft = toggleFireSource(this.draft, point);
     } else if (this.tool === "erase") {
       this.draft = removeAt(this.draft, point);
+    } else if (isTerrainTool(this.tool)) {
+      this.draft = paintTerrain(this.draft, this.tool, point);
     } else {
       this.draft = placeStructure(this.draft, this.tool, point);
     }
@@ -439,6 +476,8 @@ export class EditorScene extends Phaser.Scene {
       `${label} BUDGET\n\n${currentValue}\n\nEnter a whole number from 0 to 999.`
     );
     this.renderScene();
+    // Numeric entry still goes through the hidden DOM bridge because the repo
+    // keeps the visible editor UI inside the Phaser canvas.
     domBridge.beginNumberEntry(currentValue, {
       onUpdate: (value) => {
         this.overlayText.setText(

@@ -1,5 +1,5 @@
 import { COLORS } from "../game/constants";
-import type { Point, StructureType } from "../game/types";
+import type { Point, StructureType, TerrainType } from "../game/types";
 
 export type GrassTextureFrame = {
   baseColor: number;
@@ -26,6 +26,22 @@ export type StructureTextureFrame = {
   wallShadeColor: number;
   accentX: number;
   accentY: number;
+};
+
+export type TerrainTextureFrame = {
+  baseColor: number;
+  accentColor: number;
+  accentAlpha: number;
+  accentX: number;
+  accentY: number;
+  accentWidth: number;
+  accentHeight: number;
+  detailColor: number;
+  detailAlpha: number;
+  detailX: number;
+  detailY: number;
+  detailWidth: number;
+  detailHeight: number;
 };
 
 function hashPoint(point: Point) {
@@ -93,5 +109,64 @@ export function getStructureTextureFrame(type: StructureType, point: Point): Str
     wallShadeColor: 0x563720,
     accentX: 3 + (seed % 7),
     accentY: 7 + ((seed >> 2) % 4)
+  };
+}
+
+export function getTerrainTextureFrame(type: TerrainType, point: Point, tick = 0): TerrainTextureFrame {
+  const seed = hashPoint(point);
+  const phase = (tick + seed) % 12;
+  const waveOffset = phase < 6 ? phase : 12 - phase;
+
+  if (type === "deepWater") {
+    return {
+      baseColor: [COLORS.deepWaterA, 0x296894, 0x1f557d][seed % 3],
+      accentColor: COLORS.deepWaterFoam,
+      accentAlpha: [0.24, 0.18, 0.14][seed % 3] + waveOffset * 0.01,
+      accentX: 1 + ((seed + waveOffset) % 6),
+      accentY: 3 + ((seed >> 1) % 7),
+      accentWidth: 5 + (seed % 4),
+      accentHeight: 2 + ((seed >> 2) % 2),
+      detailColor: COLORS.deepWaterB,
+      detailAlpha: [0.42, 0.35, 0.28][seed % 3] - waveOffset * 0.01,
+      detailX: 2 + ((seed >> 2) % 5),
+      detailY: 8 + ((seed + waveOffset) % 4),
+      detailWidth: 8 + (seed % 4),
+      detailHeight: 2 + ((seed >> 1) % 2)
+    };
+  }
+
+  if (type === "wetTerrain") {
+    const shimmerOffset = (tick + seed) % 8;
+    return {
+      baseColor: [COLORS.wetTerrainA, 0x5b6e42, 0x485a33][seed % 3],
+      accentColor: COLORS.wetTerrainB,
+      accentAlpha: [0.4, 0.32, 0.28][seed % 3] + (shimmerOffset % 4) * 0.015,
+      accentX: 2 + (seed % 5),
+      accentY: 5 + ((seed + shimmerOffset) % 6),
+      accentWidth: 6 + (seed % 4),
+      accentHeight: 4 + ((seed >> 2) % 3),
+      detailColor: COLORS.wetTerrainC,
+      detailAlpha: [0.18, 0.24, 0.16][seed % 3] + (shimmerOffset % 3) * 0.02,
+      detailX: 3 + ((seed >> 2) % 6),
+      detailY: 2 + ((seed >> 3) % 4),
+      detailWidth: 3 + (seed % 3),
+      detailHeight: 3 + ((seed >> 1) % 2)
+    };
+  }
+
+  return {
+    baseColor: [COLORS.wallA, 0x857c70, 0x6d655a][seed % 3],
+    accentColor: COLORS.wallB,
+    accentAlpha: [0.6, 0.5, 0.42][seed % 3],
+    accentX: 0,
+    accentY: 4 + ((seed >> 1) % 4),
+    accentWidth: 16,
+    accentHeight: 2,
+    detailColor: COLORS.wallAccent,
+    detailAlpha: [0.32, 0.28, 0.24][seed % 3],
+    detailX: 3 + (seed % 6),
+    detailY: 2 + ((seed >> 2) % 8),
+    detailWidth: 2 + (seed % 2),
+    detailHeight: 5 + ((seed >> 1) % 3)
   };
 }

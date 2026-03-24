@@ -2,6 +2,11 @@
 
 ## Plan
 
+- [x] Add a root `README.md` that defines the project's canonical source of truth, current scope, and doc map for future maintainers/LLMs.
+- [x] Add a `docs/` knowledge base covering current state, architecture, design decisions, regressions/lessons, future direction, and tests-as-spec.
+- [x] Relabel `Burn the Village.md` as the original concept doc and clarify that implementation behavior may differ from the initial vision.
+- [x] Add targeted module comments in the simulation, layout, rendering, scene, level-io, and session files to preserve non-obvious design intent in code.
+- [x] Verify the documentation pass with `npm test` and `npm run build`, then capture the results in the review notes.
 - [x] Add shared helpers for fire/burning animation phases, brush footprints, and full-panel/container layout rules.
 - [x] Rework the splash screen to use a full-panel menu layout with no empty sidebar/HUD frames and add the `By Davis Wang` footnote.
 - [x] Move the level editor action cluster into the bottom bar right side and replace inline status text with overlay-style messaging.
@@ -26,9 +31,27 @@
 - [x] Add built-in levels, GitHub Pages deployment workflow, and verify `npm test` + `npm run build`.
 - [x] Rework editor typography and layout padding so the sidebar and HUD controls align inside their sections.
 - [x] Fix GitHub Pages deployment bootstrapping so first-run Actions deploy succeeds.
+- [x] Add a terrain layer to authored levels and runtime cells for `deepWater`, `wetTerrain`, and breachable `wall` tiles.
+- [x] Make simulation placement, fire spread, and TNT explosion reach terrain-aware while keeping scoring and the core loop unchanged.
+- [x] Add full editor support for obstacle painting/erasing, versioned JSON import/export, terrain rendering, and obstacle-focused regression tests.
+- [x] Verify the obstacle pass with `npm test` and `npm run build`, then update the durable repo docs/context.
 
 ## Review
 
+- Added a terrain layer to `LevelDefinition` and runtime grid cells, plus backward-compatible level-file parsing: older `version: 1` JSON still imports with empty terrain, while newly exported files serialize as `version: 2` with explicit `terrainTiles`.
+- Implemented three authored obstacle types with distinct gameplay roles: `deepWater` hard-blocks placement and blast reach, `wetTerrain` weakens hay ignition reliability without killing TNT, and `wall` blocks fire/placement until a TNT blast breaches it into normal ground.
+- Extended the editor to paint and erase terrain tiles directly on the map, switched the sidebar to a two-column tool grid so the new tools fit without overflowing the fixed canvas UI, and kept gameplay obstacle guidance in shared sidebar copy only when a level actually uses terrain.
+- Added terrain-aware rendering to the board and thumbnails, plus new regression coverage for terrain rules, v1/v2 level-file handling, obstacle HUD copy, and layer ordering so the new behavior is locked by tests instead of manual memory.
+- Re-verified the obstacle pass with `npm test` and `npm run build`.
+
+- Added a root `README.md` that makes `src/` plus `tests/` the explicit canon, summarizes shipped versus deferred scope, and points future readers at the durable docs instead of old prompt history.
+- Added a `docs/` knowledge base for current state, architecture, design decisions, regressions/lessons, future direction, and tests-as-spec so future LLMs can recover product, technical, and historical context from the repo itself.
+- Reframed `Burn the Village.md` as the original concept doc rather than the implementation contract, keeping the vision while making the current code/tests the source of truth.
+- Added targeted module comments in the simulation, layout, renderer, scene, level-io, and session files to preserve the reasoning behind the current seams, invariants, and guardrails.
+- Re-verified the repo with `npm test` and `npm run build` after the documentation pass.
+- Shifted the `Progress` meter label slightly upward from the geometric center to the optical center of the bar, and added a regression check so it stays above the raw midpoint.
+- Added a centered `Progress` label directly on the destruction meter so the bottom-bar bar reads as a progress meter without requiring nearby context.
+- Moved the meter geometry into a shared layout helper and added a regression test for the label anchor, then re-verified with `npm test` and `npm run build`.
 - Split the gameplay summary into separate title/body/rank text anchors so `Rank: Gold` no longer collides with the score line, and kept the whole modal content above the button stack.
 - Increased the editor bottom-row label-to-field gap, reduced and re-padded the hay/TNT field text again, and raised the editor input dialog height so the level-name prompt no longer clips `Esc cancels`.
 - Added explicit editor overlay depths so editor popups render above sidebar/button controls instead of being clipped by them.

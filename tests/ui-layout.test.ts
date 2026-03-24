@@ -8,6 +8,7 @@ import {
   SIDEBAR_WIDTH,
   CANVAS_CENTER_X
 } from "../src/game/constants";
+import { getDefaultGameplayControls } from "../src/game/gameplay-controls";
 import { createSimulation } from "../src/game/simulation";
 import type { LevelDefinition } from "../src/game/types";
 import { getGameBottomStats, getGameSidebarLines } from "../src/ui/hud-content";
@@ -20,6 +21,7 @@ import {
   getEditorOverlayLayout,
   getEditorSidebarLayout,
   getGameHudStatSlots,
+  getGameProgressBarLayout,
   getGameProgressMarkers,
   getGameSidebarLayout,
   getGameSummaryDepths,
@@ -46,6 +48,7 @@ function makeLevel(overrides: Partial<LevelDefinition> = {}): LevelDefinition {
         maxHp: 1
       }
     ],
+    terrainTiles: [],
     ...overrides
   };
 }
@@ -57,6 +60,14 @@ describe("editor layout", () => {
     const rightMargin = SIDEBAR_ORIGIN.x + SIDEBAR_WIDTH - (layout.contentX + layout.contentWidth);
 
     expect(leftMargin).toBe(rightMargin);
+  });
+
+  it("fits the editor tool grid within the sidebar content width", () => {
+    const layout = getEditorSidebarLayout();
+    const toolGridWidth = layout.toolButtonWidth * 2 + layout.toolGap;
+
+    expect(toolGridWidth).toBeLessThanOrEqual(layout.contentWidth);
+    expect(layout.toolButtonHeight).toBeLessThan(50);
   });
 
   it("keeps the editor bottom action cluster inside the HUD right section", () => {
@@ -102,6 +113,15 @@ describe("editor layout", () => {
 });
 
 describe("game HUD content", () => {
+  it("defaults gameplay controls to hay and the medium brush for each fresh run", () => {
+    const controls = getDefaultGameplayControls();
+
+    expect(controls.tool).toBe("hay");
+    expect(controls.brushIndex).toBe(1);
+    expect(controls.hoverCells).toEqual([]);
+    expect(controls.accumulator).toBe(0);
+  });
+
   it("keeps goal, destroyed, score, and medal in the bottom HUD stats", () => {
     const state = createSimulation(makeLevel(), 7);
     state.destroyedStructureCells = 1;
@@ -138,6 +158,23 @@ describe("game HUD content", () => {
     expect(lines).not.toContain("LAY HAY");
   });
 
+  it("keeps the gameplay sidebar empty even when terrain is present", () => {
+    const lines = getGameSidebarLines(
+      createSimulation(
+        makeLevel({
+          terrainTiles: [
+            { x: 1, y: 1, type: "deepWater" },
+            { x: 2, y: 1, type: "wetTerrain" },
+            { x: 3, y: 1, type: "wall" }
+          ]
+        }),
+        10
+      )
+    );
+
+    expect(lines).toEqual([]);
+  });
+
   it("keeps gameplay HUD stat slots inside the bottom bar", () => {
     const slots = getGameHudStatSlots();
     const lastSlot = slots[slots.length - 1];
@@ -157,6 +194,16 @@ describe("game HUD content", () => {
     expect(markers[0]?.color).toBe("#68bfd6");
     expect(markers[0]?.color).not.toBe(markers[3]?.color);
     expect(markers[3]?.x).toBeLessThanOrEqual(HUD_ORIGIN.x + 22 + 676);
+  });
+
+  it("centers the progress label inside the destruction meter", () => {
+    const meter = getGameProgressBarLayout();
+
+    expect(meter.centerX).toBe(meter.x + meter.width / 2);
+    expect(meter.centerY).toBe(meter.y + meter.height / 2);
+    expect(meter.labelY).toBeLessThan(meter.centerY);
+    expect(meter.labelY).toBeGreaterThan(meter.y + meter.height / 3);
+    expect(meter.width).toBeGreaterThan(300);
   });
 
   it("centers gameplay sidebar control rows inside the sidebar frame", () => {

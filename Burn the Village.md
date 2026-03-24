@@ -1,3 +1,9 @@
+# Burn the Village Concept Doc
+
+> This file is the original concept/vision document for the project.
+> The shipped implementation has evolved since this was written.
+> When behavior, UI, or feature scope matters, treat the current codebase and tests as canon, then use this file as product direction and future-context only.
+
 ## Overview
 
 * Burn the village is a 2D top down level based web app game to be hosted on GitHub pages (and eventually, if things go well, a mobile iOS app) where the goal of the game is to leverage a fire source and hay to ‘burn’ houses/structures located on a 2d map.  

@@ -13,6 +13,12 @@ import {
   SIDEBAR_WIDTH
 } from "../game/constants";
 
+/*
+ * Fixed-canvas geometry lives here on purpose.
+ * The project repeatedly regressed when scenes owned their own spacing tweaks,
+ * so layout changes should usually start in this file and the tests that lock
+ * these values down.
+ */
 export type Rect = {
   x: number;
   y: number;
@@ -35,6 +41,26 @@ export type ProgressMarker = {
   x: number;
   color: string;
 };
+
+export function getGameProgressBarLayout() {
+  const x = HUD_ORIGIN.x + 22;
+  const y = HUD_ORIGIN.y + 68;
+  const width = 676;
+  const height = 30;
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+
+  return {
+    x,
+    y,
+    width,
+    height,
+    centerX,
+    centerY,
+    // Pixel UI text reads better slightly above the raw midpoint.
+    labelY: centerY - 2
+  };
+}
 
 export function getMenuPanelLayout() {
   const contentX = CANVAS_MARGIN + PANEL_INNER_MARGIN_X;
@@ -123,6 +149,10 @@ export function getEditorSidebarLayout() {
   const horizontalInset = 18;
   const contentWidth = SIDEBAR_WIDTH - horizontalInset * 2;
   const contentX = SIDEBAR_ORIGIN.x + Math.floor((SIDEBAR_WIDTH - contentWidth) / 2);
+  const toolGap = 8;
+  const toolButtonWidth = Math.floor((contentWidth - toolGap) / 2);
+  const toolButtonHeight = 42;
+  const toolRowGap = 8;
   const actionGap = 8;
   const actionWidth = Math.floor((contentWidth - actionGap) / 2);
   const actionRowWidth = actionWidth * 2 + actionGap;
@@ -138,6 +168,10 @@ export function getEditorSidebarLayout() {
   return {
     contentX,
     contentWidth,
+    toolButtonWidth,
+    toolButtonHeight,
+    toolGap,
+    toolRowGap,
     actionWidth,
     actionGap,
     actionX,
@@ -240,6 +274,7 @@ export function getEditorOverlayDepths() {
 }
 
 export function getGameHudStatSlots(): StatSlot[] {
+  // Slot order doubles as the visible HUD contract and is protected by tests.
   const slotWidth = 104;
   const gap = 12;
   const startX = HUD_ORIGIN.x + 22;

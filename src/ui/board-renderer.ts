@@ -14,11 +14,16 @@ import {
   SIDEBAR_ORIGIN,
   SIDEBAR_WIDTH
 } from "../game/constants";
-import { buildOccupancy } from "../game/editor-draft";
-import type { LevelDefinition, Point, SimulationState } from "../game/types";
-import { getGrassTextureFrame, getStructureTextureFrame } from "./board-textures";
+import { buildOccupancy, buildTerrainMap } from "../game/editor-draft";
+import type { CellTerrain, LevelDefinition, Point, SimulationState } from "../game/types";
+import { getGrassTextureFrame, getStructureTextureFrame, getTerrainTextureFrame } from "./board-textures";
 import { getCombustionFrame } from "./fire-animation";
 
+/*
+ * Rendering stays separate from gameplay rules on purpose.
+ * Scenes pass in already-decided state, and this file draws the shared board,
+ * frames, textures, and hover feedback without owning simulation decisions.
+ */
 function fillCell(
   graphics: Phaser.GameObjects.Graphics,
   x: number,
@@ -65,6 +70,59 @@ function drawGrassTile(
 
 function drawGrassCell(graphics: Phaser.GameObjects.Graphics, x: number, y: number) {
   drawGrassTile(graphics, x, y, MAP_ORIGIN.x + x * CELL_SIZE, MAP_ORIGIN.y + y * CELL_SIZE, CELL_SIZE);
+}
+
+function drawTerrainTile(
+  graphics: Phaser.GameObjects.Graphics,
+  terrain: CellTerrain,
+  cellX: number,
+  cellY: number,
+  tileX: number,
+  tileY: number,
+  tileSize: number,
+  tick = 0
+) {
+  if (terrain === "ground") {
+    drawGrassTile(graphics, cellX, cellY, tileX, tileY, tileSize);
+    return;
+  }
+
+  const frame = getTerrainTextureFrame(terrain, { x: cellX, y: cellY }, tick);
+  graphics.fillStyle(frame.baseColor, 1);
+  graphics.fillRect(tileX, tileY, tileSize, tileSize);
+  graphics.fillStyle(frame.accentColor, frame.accentAlpha);
+  graphics.fillRect(
+    tileX + (frame.accentX / CELL_SIZE) * tileSize,
+    tileY + (frame.accentY / CELL_SIZE) * tileSize,
+    Math.max(2, (frame.accentWidth / CELL_SIZE) * tileSize),
+    Math.max(1.5, (frame.accentHeight / CELL_SIZE) * tileSize)
+  );
+  graphics.fillStyle(frame.detailColor, frame.detailAlpha);
+  graphics.fillRect(
+    tileX + (frame.detailX / CELL_SIZE) * tileSize,
+    tileY + (frame.detailY / CELL_SIZE) * tileSize,
+    Math.max(1.5, (frame.detailWidth / CELL_SIZE) * tileSize),
+    Math.max(1.5, (frame.detailHeight / CELL_SIZE) * tileSize)
+  );
+}
+
+function drawBaseCell(
+  graphics: Phaser.GameObjects.Graphics,
+  terrain: CellTerrain,
+  cellX: number,
+  cellY: number,
+  tick = 0
+) {
+  drawTerrainTile(
+    graphics,
+    terrain,
+    cellX,
+    cellY,
+    MAP_ORIGIN.x + cellX * CELL_SIZE,
+    MAP_ORIGIN.y + cellY * CELL_SIZE,
+    CELL_SIZE,
+    tick
+  );
 }
 
 function drawStructureTile(
@@ -176,6 +234,8 @@ function drawOuterPanel(graphics: Phaser.GameObjects.Graphics) {
 export function drawPanelFrame(graphics: Phaser.GameObjects.Graphics) {
   graphics.clear();
   drawOuterPanel(graphics);
+  // Game/editor/select scenes all depend on the same panel framing so visual
+  // shifts stay centralized instead of drifting scene by scene.
   const mapFrameX = MAP_ORIGIN.x - SECTION_FRAME_BORDER;
   const mapFrameY = MAP_ORIGIN.y - SECTION_FRAME_BORDER;
   const mapFrameSize = MAP_SIZE + SECTION_FRAME_BORDER * 2;
@@ -212,10 +272,11 @@ export function drawSimulationBoard(
   state: SimulationState,
   hoverCells: Point[] = []
 ) {
+  // This mirrors simulation state only; it should never decide new game state.
   for (let y = 0; y < GRID_SIZE; y += 1) {
     for (let x = 0; x < GRID_SIZE; x += 1) {
       const cell = state.grid[y][x];
-      drawGrassCell(graphics, x, y);
+      drawBaseCell(graphics, cell.terrain, x, y, state.tick);
       if (cell.scorch > 0) {
         fillCell(graphics, x, y, COLORS.scorched, Math.min(0.65, cell.scorch * 0.55));
       }
@@ -329,9 +390,10 @@ export function drawLevelBoard(
   hoverCells: Point[] = []
 ) {
   const occupied = buildOccupancy(level);
+  const terrain = buildTerrainMap(level);
   for (let y = 0; y < GRID_SIZE; y += 1) {
     for (let x = 0; x < GRID_SIZE; x += 1) {
-      drawGrassCell(graphics, x, y);
+      drawBaseCell(graphics, terrain.get(`${x},${y}`) ?? "ground", x, y);
       const key = `${x},${y}`;
       if (occupied.has(key)) {
         const structure = level.structures.find((item) => item.id === occupied.get(key));
@@ -382,12 +444,21 @@ export function drawLevelThumbnail(
   size: number
 ) {
   const occupied = buildOccupancy(level);
+  const terrain = buildTerrainMap(level);
   const cell = size / GRID_SIZE;
   graphics.fillStyle(0x1d140d, 1);
   graphics.fillRect(x, y, size, size);
   for (let row = 0; row < GRID_SIZE; row += 1) {
     for (let column = 0; column < GRID_SIZE; column += 1) {
-      drawGrassTile(graphics, column, row, x + column * cell, y + row * cell, cell);
+      drawTerrainTile(
+        graphics,
+        terrain.get(`${column},${row}`) ?? "ground",
+        column,
+        row,
+        x + column * cell,
+        y + row * cell,
+        cell
+      );
       const key = `${column},${row}`;
       if (!occupied.has(key)) {
         continue;
