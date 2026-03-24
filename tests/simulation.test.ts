@@ -373,7 +373,7 @@ describe("level files", () => {
       }
     });
 
-    expect(parseLevelFile(raw).terrainTiles).toEqual([]);
+    expect(parseLevelFile(raw, "en").terrainTiles).toEqual([]);
   });
 
   it("round-trips a valid version 2 level with terrain through JSON import/export", () => {
@@ -384,7 +384,7 @@ describe("level files", () => {
         { x: 5, y: 4, type: "wall" }
       ]
     });
-    const parsed = parseLevelFile(serializeLevel(level));
+    const parsed = parseLevelFile(serializeLevel(level), "en");
     expect(parsed).toEqual(level);
   });
 
@@ -392,7 +392,8 @@ describe("level files", () => {
     const errors = validateLevel(
       makeLevel({
         resourceBudget: { hayCells: 1_000, tntCount: 3 }
-      })
+      }),
+      "en"
     );
     expect(errors[0]).toContain("between 0 and 999");
   });
@@ -401,7 +402,8 @@ describe("level files", () => {
     const errors = validateLevel(
       makeLevel({
         fireSources: [{ x: 28, y: 28 }]
-      })
+      }),
+      "en"
     );
     expect(errors[0]).toContain("Overlap");
   });
@@ -413,12 +415,14 @@ describe("level files", () => {
           { x: 10, y: 10, type: "deepWater" },
           { x: 10, y: 10, type: "wall" }
         ]
-      })
+      }),
+      "en"
     );
     const overlapErrors = validateLevel(
       makeLevel({
         terrainTiles: [{ x: 28, y: 28, type: "wetTerrain" }]
-      })
+      }),
+      "en"
     );
 
     expect(duplicateErrors[0]).toContain("Overlap");

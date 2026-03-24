@@ -31,6 +31,7 @@ import {
   getGameSummaryDepths,
   getGameSummaryLayout,
   getLevelSelectGridLayout,
+  getMenuLocaleToggleLayout,
   getMenuPanelLayout,
   getLevelSelectSidebarLayout
 } from "../src/ui/layout";
@@ -149,7 +150,7 @@ describe("game HUD content", () => {
     state.score = 880;
     state.medal = "gold";
 
-    const stats = getGameBottomStats(makeLevel(), state);
+    const stats = getGameBottomStats(makeLevel(), state, "en");
 
     expect(stats.map((item) => item.key)).toEqual(["goal", "destroyed", "score", "medal", "hay", "tnt"]);
     expect(stats.map((item) => item.label)).toEqual(["GOAL", "DESTROYED", "SCORE", "RANK", "HAY", "TNT"]);
@@ -158,7 +159,7 @@ describe("game HUD content", () => {
   });
 
   it("hides the medal slot copy when no medal is earned", () => {
-    const stats = getGameBottomStats(makeLevel(), createSimulation(makeLevel(), 3));
+    const stats = getGameBottomStats(makeLevel(), createSimulation(makeLevel(), 3), "en");
     const medal = stats.find((item) => item.key === "medal");
 
     expect(medal?.label).toBe("");
@@ -166,7 +167,7 @@ describe("game HUD content", () => {
   });
 
   it("removes read-only run copy from the gameplay sidebar", () => {
-    const lines = getGameSidebarLines(createSimulation(makeLevel(), 9)).join(" ");
+    const lines = getGameSidebarLines(createSimulation(makeLevel(), 9), "en").join(" ");
 
     expect(lines).toBe("");
     expect(lines).not.toContain("GOAL");
@@ -188,7 +189,8 @@ describe("game HUD content", () => {
           ]
         }),
         10
-      )
+      ),
+      "en"
     );
 
     expect(lines).toEqual([]);
@@ -235,6 +237,8 @@ describe("game HUD content", () => {
 
     expect(leftMargin).toBe(rightMargin);
     expect(brushLeftMargin).toBe(brushRightMargin);
+    expect(layout.brushButtonsY - layout.brushLabelY).toBeGreaterThanOrEqual(28);
+    expect(layout.speedButtonsY - layout.speedLabelY).toBeGreaterThanOrEqual(28);
     expect(layout.actionBottomY + layout.actionHeight).toBeLessThanOrEqual(SIDEBAR_ORIGIN.y + MAP_SIZE);
     expect(layout.speedLabelMaxWidth).toBeGreaterThan(40);
   });
@@ -245,7 +249,7 @@ describe("game HUD content", () => {
     expect(layout.buttonX).toBeGreaterThanOrEqual(layout.dialogX);
     expect(layout.buttonX + layout.buttonWidth).toBeLessThanOrEqual(layout.dialogX + layout.dialogWidth);
     expect(layout.thirdButtonY + layout.buttonHeight).toBeLessThanOrEqual(layout.dialogY + layout.dialogHeight);
-    expect(layout.summaryContentBottomY).toBeLessThan(layout.firstButtonY);
+    expect(layout.summaryContentBottomY + 8).toBeLessThanOrEqual(layout.firstButtonY);
   });
 
   it("draws the summary overlay above regular gameplay controls", () => {
@@ -270,7 +274,7 @@ describe("level select layout", () => {
     const stats = getLevelCardStatsText({
       level: makeLevel({ completionPct: 0.7, resourceBudget: { hayCells: 9, tntCount: 2 } }),
       source: "built-in"
-    });
+    }, "en");
 
     expect(stats).toBe("");
     expect(stats).not.toContain("BUILT-IN");
@@ -287,7 +291,8 @@ describe("level select layout", () => {
   });
 
   it("uses the shortened sidebar copy under playable levels", () => {
-    expect(getLevelSelectSidebarCopy()).toBe("Pick a level or import from a json file.");
+    expect(getLevelSelectSidebarCopy("en")).toBe("Pick a level or import from a json file.");
+    expect(getLevelSelectSidebarCopy("zhHans")).toBe("选择一个关卡，或导入 JSON 文件。");
   });
 });
 
@@ -300,5 +305,21 @@ describe("menu layout", () => {
     expect(layout.contentWidth).toBeGreaterThan(MAP_SIZE);
     expect(layout.buttonX + layout.buttonWidth / 2).toBe(layout.titleCenterX);
     expect(layout.footnoteX).toBe(CANVAS_CENTER_X);
+  });
+
+  it("anchors the locale toggle inside the menu panel without touching the border or footnote", () => {
+    const menu = getMenuPanelLayout();
+    const toggle = getMenuLocaleToggleLayout();
+    const samePlaneGap = 4;
+
+    expect(toggle.x).toBeGreaterThanOrEqual(menu.contentX + samePlaneGap);
+    expect(toggle.y).toBeGreaterThanOrEqual(menu.contentY + samePlaneGap);
+    expect(toggle.x + toggle.width).toBeLessThanOrEqual(menu.contentX + menu.contentWidth - samePlaneGap);
+    expect(toggle.y + toggle.height).toBeLessThanOrEqual(menu.contentY + menu.contentHeight - samePlaneGap);
+    expect(toggle.width).toBeLessThan(120);
+    expect(toggle.height).toBeLessThanOrEqual(36);
+    expect(toggle.segmentWidth).toBeGreaterThanOrEqual(50);
+    expect(toggle.x).toBeGreaterThan(CANVAS_CENTER_X);
+    expect(toggle.y + toggle.height).toBeGreaterThan(menu.footnoteY - 20);
   });
 });

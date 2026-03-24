@@ -1,3 +1,5 @@
+import type { Locale } from "../i18n";
+import { getTranslations } from "../i18n";
 import { GRID_SIZE } from "./constants";
 import type {
   ExportedLevelFile,
@@ -66,41 +68,42 @@ function isTerrainTile(value: unknown): value is TerrainTile {
   return isObject(value) && isPoint(value) && isTerrainType(value.type);
 }
 
-export function validateLevel(level: LevelDefinition): string[] {
+export function validateLevel(level: LevelDefinition, locale: Locale): string[] {
+  const messages = getTranslations(locale).levelIO;
   const errors: string[] = [];
   if (!level.id.trim()) {
-    errors.push("Level id is required.");
+    errors.push(messages.requiredLevelId);
   }
   if (!level.name.trim()) {
-    errors.push("Level name is required.");
+    errors.push(messages.requiredLevelName);
   }
   if (level.gridSize !== GRID_SIZE) {
-    errors.push(`Grid size must be ${GRID_SIZE}.`);
+    errors.push(messages.gridSizeMustBe(GRID_SIZE));
   }
   if (!level.fireSources.length) {
-    errors.push("At least one fire source is required.");
+    errors.push(messages.fireSourceRequired);
   }
   if (!level.structures.length) {
-    errors.push("At least one structure is required.");
+    errors.push(messages.structureRequired);
   }
   if (level.completionPct <= 0 || level.completionPct > 1) {
-    errors.push("Completion threshold must be between 0 and 1.");
+    errors.push(messages.completionThreshold);
   }
   if (level.resourceBudget.hayCells < 0 || level.resourceBudget.tntCount < 0) {
-    errors.push("Resource budgets cannot be negative.");
+    errors.push(messages.resourceBudgetNegative);
   }
   if (
     level.resourceBudget.hayCells > MAX_RESOURCE_BUDGET ||
     level.resourceBudget.tntCount > MAX_RESOURCE_BUDGET
   ) {
-    errors.push(`Resource budgets must be between 0 and ${MAX_RESOURCE_BUDGET}.`);
+    errors.push(messages.resourceBudgetRange(MAX_RESOURCE_BUDGET));
   }
 
   const occupied = new Map<string, string>();
   const occupy = (x: number, y: number, label: string) => {
     const key = `${x},${y}`;
     if (occupied.has(key)) {
-      errors.push(`Overlap detected at ${key} (${occupied.get(key)} and ${label}).`);
+      errors.push(messages.overlapDetected(key, occupied.get(key) ?? "", label));
       return;
     }
     occupied.set(key, label);
@@ -108,35 +111,35 @@ export function validateLevel(level: LevelDefinition): string[] {
 
   for (const source of level.fireSources) {
     if (source.x < 0 || source.x >= GRID_SIZE || source.y < 0 || source.y >= GRID_SIZE) {
-      errors.push(`Fire source at ${source.x},${source.y} is out of bounds.`);
+      errors.push(messages.fireSourceOutOfBounds(source.x, source.y));
       continue;
     }
-    occupy(source.x, source.y, "fire source");
+    occupy(source.x, source.y, messages.occupancyFireSource);
   }
 
   for (const terrain of level.terrainTiles ?? []) {
     if (terrain.x < 0 || terrain.x >= GRID_SIZE || terrain.y < 0 || terrain.y >= GRID_SIZE) {
-      errors.push(`Terrain tile at ${terrain.x},${terrain.y} is out of bounds.`);
+      errors.push(messages.terrainOutOfBounds(terrain.x, terrain.y));
       continue;
     }
-    occupy(terrain.x, terrain.y, `terrain:${terrain.type}`);
+    occupy(terrain.x, terrain.y, messages.occupancyTerrain(terrain.type));
   }
 
   for (const structure of level.structures) {
     if (structure.origin.x < 0 || structure.origin.y < 0) {
-      errors.push(`Structure ${structure.id} starts out of bounds.`);
+      errors.push(messages.structureStartsOutOfBounds(structure.id));
       continue;
     }
     if (
       structure.origin.x + structure.size.x > GRID_SIZE ||
       structure.origin.y + structure.size.y > GRID_SIZE
     ) {
-      errors.push(`Structure ${structure.id} exceeds the grid bounds.`);
+      errors.push(messages.structureExceedsGrid(structure.id));
       continue;
     }
     for (let y = structure.origin.y; y < structure.origin.y + structure.size.y; y += 1) {
       for (let x = structure.origin.x; x < structure.origin.x + structure.size.x; x += 1) {
-        occupy(x, y, `structure:${structure.id}`);
+        occupy(x, y, messages.occupancyStructure(structure.id));
       }
     }
   }
@@ -152,15 +155,21 @@ export function serializeLevel(level: LevelDefinition): string {
   return JSON.stringify(payload, null, 2);
 }
 
-export function parseLevelFile(raw: string): LevelDefinition {
+export function parseLevelFile(raw: string, locale: Locale): LevelDefinition {
+  const messages = getTranslations(locale).levelIO;
   // Imported files must cross the same validation boundary as authored levels.
-  const parsed = JSON.parse(raw) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new Error(messages.malformedFile);
+  }
   if (
     !isObject(parsed) ||
     (parsed.version !== 1 && parsed.version !== 2) ||
     !isObject(parsed.level)
   ) {
-    throw new Error("File is not a supported Burn the Village level.");
+    throw new Error(messages.unsupportedFile);
   }
   const level = parsed.level as Record<string, unknown>;
   const terrainTilesRaw = parsed.version === 2 ? level.terrainTiles : [];
@@ -174,7 +183,7 @@ export function parseLevelFile(raw: string): LevelDefinition {
     !Array.isArray(level.structures) ||
     !Array.isArray(terrainTilesRaw)
   ) {
-    throw new Error("Level file is malformed.");
+    throw new Error(messages.malformedFile);
   }
 
   const definition: LevelDefinition = {
@@ -185,25 +194,25 @@ export function parseLevelFile(raw: string): LevelDefinition {
     completionPct: level.completionPct,
     fireSources: level.fireSources.map((point) => {
       if (!isPoint(point)) {
-        throw new Error("Invalid fire source coordinates.");
+        throw new Error(messages.invalidFireSourceCoordinates);
       }
       return point;
     }),
     structures: level.structures.map((structure) => {
       if (!isStructureDefinition(structure)) {
-        throw new Error("Invalid structure definition.");
+        throw new Error(messages.invalidStructureDefinition);
       }
       return structure;
     }),
     terrainTiles: terrainTilesRaw.map((tile) => {
       if (!isTerrainTile(tile)) {
-        throw new Error("Invalid terrain tile definition.");
+        throw new Error(messages.invalidTerrainTileDefinition);
       }
       return tile;
     })
   };
 
-  const errors = validateLevel(definition);
+  const errors = validateLevel(definition, locale);
   if (errors.length) {
     throw new Error(errors[0]);
   }

@@ -8,6 +8,7 @@ import {
   PANEL_WIDTH,
   SIDEBAR_ORIGIN
 } from "../game/constants";
+import { getDisplayLevelName, getLocale, getTranslations, type Locale } from "../i18n";
 import { parseLevelFile } from "../game/level-io";
 import { session } from "../game/session";
 import type { LevelCatalogEntry } from "../game/types";
@@ -17,7 +18,7 @@ import { addGlobalAudioToggle } from "../ui/global-audio-toggle";
 import { getLevelCardStatsText, getLevelSelectSidebarCopy } from "../ui/level-select-content";
 import { clampLevelSelectScroll, getLevelSelectGridLayout, getLevelSelectSidebarLayout } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
-import { PIXEL_FONT_FAMILY, pixelFontSize } from "../ui/typography";
+import { getPixelFontFamily, getPixelFontStyle, pixelFontSize } from "../ui/typography";
 
 export class LevelSelectScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
@@ -25,30 +26,34 @@ export class LevelSelectScene extends Phaser.Scene {
   private cards: Phaser.GameObjects.Container[] = [];
   private scrollOffset = 0;
   private maxScroll = 0;
+  private locale: Locale = "en";
 
   constructor() {
     super("LevelSelectScene");
   }
 
   create() {
+    this.locale = getLocale();
+    const strings = getTranslations(this.locale);
+    const fontFamily = getPixelFontFamily(this.locale);
     const frame = this.add.graphics();
     drawPanelFrame(frame);
     addGlobalAudioToggle(this);
 
     this.add
-      .text(MAP_ORIGIN.x, HEADER_Y, "LEVEL SELECT", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(24),
+      .text(MAP_ORIGIN.x, HEADER_Y, strings.levelSelect.heading, {
+        fontFamily,
+        fontSize: pixelFontSize(24, this.locale),
         color: "#fce7b2",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         resolution: 2
       })
       .setOrigin(0, 0.5);
 
     this.statusText = this.add
       .text(HUD_ORIGIN.x, HUD_ORIGIN.y + 88, "", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(16),
+        fontFamily,
+        fontSize: pixelFontSize(16, this.locale),
         color: "#83dd4c",
         resolution: 2,
         wordWrap: { width: PANEL_WIDTH - 48 }
@@ -74,7 +79,8 @@ export class LevelSelectScene extends Phaser.Scene {
       const row = Math.floor(index / grid.columns);
       const x = MAP_ORIGIN.x + column * (grid.cardWidth + grid.cardGapX);
       const y = MAP_ORIGIN.y + row * (grid.cardHeight + grid.cardGapY);
-      const statsText = getLevelCardStatsText(entry);
+      const statsText = getLevelCardStatsText(entry, this.locale);
+      const fontFamily = getPixelFontFamily(this.locale);
       const cardContainer = this.add.container(x, y);
 
       const card = this.add.rectangle(0, 0, grid.cardWidth, grid.cardHeight, 0x281a11).setOrigin(0);
@@ -90,11 +96,11 @@ export class LevelSelectScene extends Phaser.Scene {
       drawLevelThumbnail(preview, entry.level, 10, 10, 72);
 
       const title = this.add
-        .text(92, 12, entry.level.name, {
-          fontFamily: PIXEL_FONT_FAMILY,
-          fontSize: pixelFontSize(15),
+        .text(92, 12, getDisplayLevelName(entry.level, this.locale), {
+          fontFamily,
+          fontSize: pixelFontSize(15, this.locale),
           color: "#fce7b2",
-          fontStyle: "bold",
+          fontStyle: getPixelFontStyle(this.locale),
           resolution: 2,
           wordWrap: { width: 132 }
         })
@@ -104,8 +110,8 @@ export class LevelSelectScene extends Phaser.Scene {
       if (statsText) {
         const stats = this.add
           .text(92, 38, statsText, {
-            fontFamily: PIXEL_FONT_FAMILY,
-            fontSize: pixelFontSize(15),
+            fontFamily,
+            fontSize: pixelFontSize(15, this.locale),
             color: "#bfa16e",
             resolution: 2,
             wordWrap: { width: 132 }
@@ -125,13 +131,15 @@ export class LevelSelectScene extends Phaser.Scene {
 
   private buildSidebar() {
     const layout = getLevelSelectSidebarLayout();
+    const strings = getTranslations(this.locale);
+    const fontFamily = getPixelFontFamily(this.locale);
 
     this.add
-      .text(layout.headingX, SIDEBAR_ORIGIN.y + 8, "PLAYABLE LEVELS", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(18),
+      .text(layout.headingX, SIDEBAR_ORIGIN.y + 8, strings.levelSelect.sidebarTitle, {
+        fontFamily,
+        fontSize: pixelFontSize(18, this.locale),
         color: "#fce7b2",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         resolution: 2
       })
       .setOrigin(0, 0);
@@ -140,10 +148,10 @@ export class LevelSelectScene extends Phaser.Scene {
       .text(
         layout.bodyX,
         SIDEBAR_ORIGIN.y + 46,
-        getLevelSelectSidebarCopy(),
+        getLevelSelectSidebarCopy(this.locale),
         {
-          fontFamily: PIXEL_FONT_FAMILY,
-          fontSize: pixelFontSize(14),
+          fontFamily,
+          fontSize: pixelFontSize(14, this.locale),
           color: "#bfa16e",
           resolution: 2,
           wordWrap: { width: layout.contentWidth }
@@ -157,7 +165,8 @@ export class LevelSelectScene extends Phaser.Scene {
       y: layout.firstButtonY,
       width: layout.contentWidth,
       height: layout.buttonHeight,
-      label: "IMPORT JSON",
+      label: strings.levelSelect.importJson,
+      locale: this.locale,
       onClick: () => void this.importLevel()
     });
 
@@ -167,7 +176,8 @@ export class LevelSelectScene extends Phaser.Scene {
       y: layout.secondButtonY,
       width: layout.contentWidth,
       height: layout.buttonHeight,
-      label: "EDITOR",
+      label: strings.common.editor,
+      locale: this.locale,
       onClick: () => this.scene.start("EditorScene")
     });
 
@@ -177,23 +187,25 @@ export class LevelSelectScene extends Phaser.Scene {
       y: layout.thirdButtonY,
       width: layout.contentWidth,
       height: layout.buttonHeight,
-      label: "BACK",
+      label: strings.common.back,
+      locale: this.locale,
       onClick: () => this.scene.start("MenuScene")
     });
   }
 
   private async importLevel() {
     try {
+      const strings = getTranslations(this.locale);
       const raw = await domBridge.pickJsonFile();
       if (!raw) {
-        this.statusText.setText("Import cancelled.");
+        this.statusText.setText(strings.common.importCancelled);
         return;
       }
-      const level = parseLevelFile(raw);
+      const level = parseLevelFile(raw, this.locale);
       session.addCustomLevel(level);
       this.scene.restart();
     } catch (error) {
-      this.statusText.setText(error instanceof Error ? error.message : "Import failed.");
+      this.statusText.setText(error instanceof Error ? error.message : getTranslations(this.locale).common.importFailed);
     }
   }
 

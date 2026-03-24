@@ -13,6 +13,14 @@ import {
   PANEL_WIDTH,
   SIDEBAR_ORIGIN
 } from "../game/constants";
+import {
+  buildBudgetEntryText,
+  buildNameEntryText,
+  getDefaultCustomLevelName,
+  getLocale,
+  getTranslations,
+  type Locale
+} from "../i18n";
 import { addGlobalAudioToggle } from "../ui/global-audio-toggle";
 import { cloneLevel, paintTerrain, placeStructure, removeAt, toggleFireSource } from "../game/editor-draft";
 import { parseLevelFile, serializeLevel, validateLevel } from "../game/level-io";
@@ -29,7 +37,7 @@ import {
   getEditorSidebarLayout
 } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
-import { PIXEL_FONT_FAMILY, pixelFontSize } from "../ui/typography";
+import { getPixelFontFamily, getPixelFontStyle, pixelFontSize } from "../ui/typography";
 
 function slugify(value: string): string {
   return value
@@ -71,22 +79,26 @@ export class EditorScene extends Phaser.Scene {
   private transientMessage: string | null = null;
   private transientMessageTimer: Phaser.Time.TimerEvent | null = null;
   private lastDragCellKey: string | null = null;
+  private locale: Locale = "en";
 
   constructor() {
     super("EditorScene");
   }
 
   create() {
+    this.locale = getLocale();
+    const strings = getTranslations(this.locale);
+    const fontFamily = getPixelFontFamily(this.locale);
     this.draft = session.getEditorDraft();
     drawPanelFrame(this.add.graphics());
     addGlobalAudioToggle(this);
 
     this.add
-      .text(MAP_ORIGIN.x, HEADER_Y, "LEVEL EDITOR", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(24),
+      .text(MAP_ORIGIN.x, HEADER_Y, strings.editor.heading, {
+        fontFamily,
+        fontSize: pixelFontSize(24, this.locale),
         color: "#fce7b2",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         resolution: 2
       })
       .setOrigin(0, 0.5);
@@ -96,8 +108,8 @@ export class EditorScene extends Phaser.Scene {
     this.overlayGraphics.setDepth(getEditorOverlayDepths().overlay);
     this.overlayText = this.add
       .text(CANVAS_CENTER_X, 330, "", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(20),
+        fontFamily,
+        fontSize: pixelFontSize(20, this.locale),
         color: "#fce7b2",
         align: "center",
         resolution: 2,
@@ -115,15 +127,16 @@ export class EditorScene extends Phaser.Scene {
 
   private buildSidebar() {
     const layout = getEditorSidebarLayout();
+    const strings = getTranslations(this.locale);
     const toolSpecs: Array<{ tool: EditorTool; label: string; row: number; column: number }> = [
-      { tool: "fire", label: "FIRE", row: 0, column: 0 },
-      { tool: "hut", label: "HUT", row: 0, column: 1 },
-      { tool: "house", label: "HOUSE", row: 1, column: 0 },
-      { tool: "hall", label: "HALL", row: 1, column: 1 },
-      { tool: "deepWater", label: "WATER", row: 2, column: 0 },
-      { tool: "wetTerrain", label: "MARSH", row: 2, column: 1 },
-      { tool: "wall", label: "WALL", row: 3, column: 0 },
-      { tool: "erase", label: "ERASE", row: 3, column: 1 }
+      { tool: "fire", label: strings.editor.toolLabels.fire, row: 0, column: 0 },
+      { tool: "hut", label: strings.editor.toolLabels.hut, row: 0, column: 1 },
+      { tool: "house", label: strings.editor.toolLabels.house, row: 1, column: 0 },
+      { tool: "hall", label: strings.editor.toolLabels.hall, row: 1, column: 1 },
+      { tool: "deepWater", label: strings.editor.toolLabels.deepWater, row: 2, column: 0 },
+      { tool: "wetTerrain", label: strings.editor.toolLabels.wetTerrain, row: 2, column: 1 },
+      { tool: "wall", label: strings.editor.toolLabels.wall, row: 3, column: 0 },
+      { tool: "erase", label: strings.editor.toolLabels.erase, row: 3, column: 1 }
     ];
 
     const buttons = {} as Record<EditorTool, PixelButton>;
@@ -135,6 +148,7 @@ export class EditorScene extends Phaser.Scene {
         width: layout.toolButtonWidth,
         height: layout.toolButtonHeight,
         label,
+        locale: this.locale,
         fontSize: "18px",
         onClick: () => {
           this.tool = tool;
@@ -149,23 +163,25 @@ export class EditorScene extends Phaser.Scene {
   private buildBottomControls() {
     const controls = getEditorBottomControlLayout();
     const actions = getEditorBottomActionLayout();
+    const strings = getTranslations(this.locale);
+    const fontFamily = getPixelFontFamily(this.locale);
     const label = (x: number, y: number, text: string) =>
       this.add
         .text(x, y, text, {
-          fontFamily: PIXEL_FONT_FAMILY,
-          fontSize: pixelFontSize(18),
+          fontFamily,
+          fontSize: pixelFontSize(18, this.locale),
           color: "#bfa16e",
-          fontStyle: "bold",
+          fontStyle: getPixelFontStyle(this.locale),
           resolution: 2
         })
         .setOrigin(0, 0);
-    const value = (x: number, y: number, fontSize = pixelFontSize(28), originX = 0) =>
+    const value = (x: number, y: number, fontSize = pixelFontSize(28, this.locale), originX = 0) =>
       this.add
         .text(x, y, "", {
-          fontFamily: PIXEL_FONT_FAMILY,
+          fontFamily,
           fontSize,
           color: "#fce7b2",
-          fontStyle: "bold",
+          fontStyle: getPixelFontStyle(this.locale),
           resolution: 2
         })
         .setOrigin(originX, 0.5);
@@ -178,14 +194,14 @@ export class EditorScene extends Phaser.Scene {
     const groupWidth = controls.groupWidth;
     const groupGap = controls.groupGap;
 
-    label(hudLeft, nameLabelY, "NAME");
-    label(hudLeft, groupLabelY, "HAY");
-    label(hudLeft + groupWidth + groupGap, groupLabelY, "TNT");
-    label(hudLeft + (groupWidth + groupGap) * 2, groupLabelY, "GOAL");
+    label(hudLeft, nameLabelY, strings.editor.name);
+    label(hudLeft, groupLabelY, strings.editor.hayBudget);
+    label(hudLeft + groupWidth + groupGap, groupLabelY, strings.editor.tntBudget);
+    label(hudLeft + (groupWidth + groupGap) * 2, groupLabelY, strings.editor.goal);
 
     this.statTexts = {
-      name: value(hudLeft + 112, nameValueY, pixelFontSize(26)),
-      goal: value(controls.goalValueX, groupControlY + 18, pixelFontSize(28), 1)
+      name: value(hudLeft + 112, nameValueY, pixelFontSize(26, this.locale)),
+      goal: value(controls.goalValueX, groupControlY + 18, pixelFontSize(28, this.locale), 1)
     };
 
     const stepper = (x: number, y: number, onMinus: () => void, onPlus: () => void) => {
@@ -196,6 +212,7 @@ export class EditorScene extends Phaser.Scene {
         width: controls.goalStepperWidth,
         height: 34,
         label: "-",
+        locale: this.locale,
         fontSize: "18px",
         onClick: onMinus
       });
@@ -206,6 +223,7 @@ export class EditorScene extends Phaser.Scene {
         width: controls.goalStepperWidth,
         height: 34,
         label: "+",
+        locale: this.locale,
         fontSize: "18px",
         onClick: onPlus
       });
@@ -221,6 +239,7 @@ export class EditorScene extends Phaser.Scene {
         width: controls.budgetButtonWidth,
         height: 38,
         label: "",
+        locale: this.locale,
         fontSize: controls.budgetFontSize,
         labelOffsetX: controls.budgetTextOffsetX,
         labelOffsetY: controls.budgetTextOffsetY,
@@ -233,6 +252,7 @@ export class EditorScene extends Phaser.Scene {
         width: controls.budgetButtonWidth,
         height: 38,
         label: "",
+        locale: this.locale,
         fontSize: controls.budgetFontSize,
         labelOffsetX: controls.budgetTextOffsetX,
         labelOffsetY: controls.budgetTextOffsetY,
@@ -247,7 +267,8 @@ export class EditorScene extends Phaser.Scene {
       y: actions.topY,
       width: actions.pairWidth,
       height: actions.buttonHeight,
-      label: "RENAME",
+      label: strings.common.rename,
+      locale: this.locale,
       fontSize: "17px",
       onClick: () => this.beginNameEntry()
     });
@@ -257,7 +278,8 @@ export class EditorScene extends Phaser.Scene {
       y: actions.topY,
       width: actions.pairWidth,
       height: actions.buttonHeight,
-      label: "IMPORT",
+      label: strings.common.import,
+      locale: this.locale,
       fontSize: "17px",
       onClick: () => void this.importLevel()
     });
@@ -267,7 +289,8 @@ export class EditorScene extends Phaser.Scene {
       y: actions.secondRowY,
       width: actions.pairWidth,
       height: actions.buttonHeight,
-      label: "EXPORT",
+      label: strings.common.export,
+      locale: this.locale,
       fontSize: "17px",
       onClick: () => this.exportLevel()
     });
@@ -277,7 +300,8 @@ export class EditorScene extends Phaser.Scene {
       y: actions.secondRowY,
       width: actions.pairWidth,
       height: actions.buttonHeight,
-      label: "PLAY TEST",
+      label: strings.common.playTest,
+      locale: this.locale,
       fontSize: "17px",
       onClick: () => this.playTest()
     });
@@ -287,7 +311,8 @@ export class EditorScene extends Phaser.Scene {
       y: actions.menuY,
       width: actions.contentWidth,
       height: actions.menuHeight,
-      label: "MENU",
+      label: strings.common.menu,
+      locale: this.locale,
       fontSize: "18px",
       onClick: () => {
         session.replaceEditorDraft(this.draft);
@@ -445,18 +470,14 @@ export class EditorScene extends Phaser.Scene {
 
   private beginNameEntry() {
     this.naming = true;
-    this.overlayText.setText(
-      `LEVEL NAME\n\n${this.draft.name}\n\nType to edit. Enter saves. Esc cancels.`
-    );
+    this.overlayText.setText(buildNameEntryText(this.locale, this.draft.name));
     this.renderScene();
     domBridge.beginTextEntry(this.draft.name, {
       onUpdate: (value) => {
-        this.overlayText.setText(
-          `LEVEL NAME\n\n${value || "(empty)"}\n\nType to edit. Enter saves. Esc cancels.`
-        );
+        this.overlayText.setText(buildNameEntryText(this.locale, value));
       },
       onCommit: (value) => {
-        const next = value.trim() || "Custom Level";
+        const next = value.trim() || getDefaultCustomLevelName(this.locale);
         this.draft.name = next;
         this.draft.id = slugify(next) || "custom-level";
         this.naming = false;
@@ -472,24 +493,20 @@ export class EditorScene extends Phaser.Scene {
   private beginBudgetEntry(kind: "hay" | "tnt") {
     const currentValue =
       kind === "hay" ? this.draft.resourceBudget.hayCells : this.draft.resourceBudget.tntCount;
-    const label = kind === "hay" ? "HAY" : "TNT";
+    const label = kind === "hay" ? getTranslations(this.locale).editor.hayBudget : getTranslations(this.locale).editor.tntBudget;
     this.budgetEntry = kind;
-    this.overlayText.setText(
-      `${label} BUDGET\n\n${currentValue}\n\nEnter a whole number from 0 to 999.`
-    );
+    this.overlayText.setText(buildBudgetEntryText(this.locale, label, String(currentValue)));
     this.renderScene();
     // Numeric entry still goes through the hidden DOM bridge because the repo
     // keeps the visible editor UI inside the Phaser canvas.
     domBridge.beginNumberEntry(currentValue, {
       onUpdate: (value) => {
-        this.overlayText.setText(
-          `${label} BUDGET\n\n${value || "(empty)"}\n\nEnter a whole number from 0 to 999.`
-        );
+        this.overlayText.setText(buildBudgetEntryText(this.locale, label, value));
       },
       onCommit: (value) => {
         const parsed = Number.parseInt(value, 10);
         if (!Number.isInteger(parsed) || parsed < 0 || parsed > EditorScene.MAX_RESOURCE_INPUT) {
-          this.showTransientMessage("Enter a whole number between 0 and 999.");
+          this.showTransientMessage(getTranslations(this.locale).editor.invalidBudget);
         } else if (kind === "hay") {
           // TODO: add authored-budget validation so obviously unreasonable values are flagged before export.
           this.draft.resourceBudget.hayCells = parsed;
@@ -509,33 +526,34 @@ export class EditorScene extends Phaser.Scene {
 
   private async importLevel() {
     try {
+      const strings = getTranslations(this.locale);
       const raw = await domBridge.pickJsonFile();
       if (!raw) {
-        this.showTransientMessage("Import cancelled.");
+        this.showTransientMessage(strings.common.importCancelled);
         return;
       }
-      this.draft = parseLevelFile(raw);
+      this.draft = parseLevelFile(raw, this.locale);
       session.replaceEditorDraft(this.draft);
-      this.showTransientMessage("Imported level into the editor.");
+      this.showTransientMessage(strings.editor.importedToEditor);
       this.renderScene();
     } catch (error) {
-      this.showTransientMessage(error instanceof Error ? error.message : "Import failed.");
+      this.showTransientMessage(error instanceof Error ? error.message : getTranslations(this.locale).common.importFailed);
     }
   }
 
   private exportLevel() {
-    const errors = validateLevel(this.draft);
+    const errors = validateLevel(this.draft, this.locale);
     if (errors.length) {
       this.showTransientMessage(errors[0]);
       return;
     }
     domBridge.downloadText(`${slugify(this.draft.name || this.draft.id)}.json`, serializeLevel(this.draft));
     session.addCustomLevel(cloneLevel(this.draft));
-    this.showTransientMessage("Exported level JSON.");
+    this.showTransientMessage(getTranslations(this.locale).editor.exportedJson);
   }
 
   private playTest() {
-    const errors = validateLevel(this.draft);
+    const errors = validateLevel(this.draft, this.locale);
     if (errors.length) {
       this.showTransientMessage(errors[0]);
       return;

@@ -3,9 +3,10 @@ import Phaser from "phaser";
 import { type AudioCueKey } from "../audio/catalog";
 import { playCue, unlockAudio } from "../audio/controller";
 import { COLORS } from "../game/constants";
+import type { Locale } from "../i18n";
 import { getPixelButtonLayerOrder, getPixelButtonSelectionOutlineMetrics } from "./pixel-button-order";
 import { getPixelButtonCueForEvent } from "./pixel-button-audio";
-import { PIXEL_FONT_FAMILY, PIXEL_FONT_SIZE_STEP } from "./typography";
+import { getPixelFontFamily, getPixelFontStyle, PIXEL_FONT_SIZE_STEP, ZH_HANS_FONT_SIZE_ADJUSTMENT } from "./typography";
 
 type PixelButtonOptions = {
   scene: Phaser.Scene;
@@ -15,6 +16,8 @@ type PixelButtonOptions = {
   height: number;
   label: string;
   fontSize?: string;
+  locale?: Locale;
+  fontFamily?: string;
   labelOffsetX?: number;
   labelOffsetY?: number;
   clickCue?: AudioCueKey | null;
@@ -30,7 +33,9 @@ export class PixelButton extends Phaser.GameObjects.Container {
   private readonly hitArea: Phaser.GameObjects.Zone;
   private readonly onClick: () => void;
   private readonly buttonWidth: number;
+  private readonly buttonHeight: number;
   private readonly baseFontSize: number;
+  private readonly locale: Locale;
   private enabled = true;
   private selected = false;
 
@@ -38,7 +43,12 @@ export class PixelButton extends Phaser.GameObjects.Container {
     super(options.scene, options.x, options.y);
     this.onClick = options.onClick;
     this.buttonWidth = options.width;
-    this.baseFontSize = Number.parseInt(options.fontSize ?? "18", 10) + PIXEL_FONT_SIZE_STEP;
+    this.buttonHeight = options.height;
+    this.locale = options.locale ?? "en";
+    this.baseFontSize =
+      Number.parseInt(options.fontSize ?? "18", 10) +
+      PIXEL_FONT_SIZE_STEP +
+      (this.locale === "zhHans" ? ZH_HANS_FONT_SIZE_ADJUSTMENT : 0);
     const outline = getPixelButtonSelectionOutlineMetrics();
 
     this.selectionOutline = options.scene.add
@@ -57,13 +67,14 @@ export class PixelButton extends Phaser.GameObjects.Container {
       .rectangle(3, 3, options.width - 6, 8, COLORS.frameLight, 0.45)
       .setOrigin(0);
     const labelOffsetX = options.labelOffsetX ?? 0;
-    const labelOffsetY = options.labelOffsetY ?? 0;
+    const labelOffsetY = options.labelOffsetY ?? (this.locale === "zhHans" ? -1 : 0);
+    const fontFamily = options.fontFamily ?? getPixelFontFamily(this.locale);
     this.labelText = options.scene.add
       .text(options.width / 2 + labelOffsetX, options.height / 2 + labelOffsetY, options.label, {
-        fontFamily: PIXEL_FONT_FAMILY,
+        fontFamily,
         fontSize: `${this.baseFontSize}px`,
         color: "#fce7b2",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         resolution: 2
       })
       .setOrigin(0.5);
@@ -93,14 +104,14 @@ export class PixelButton extends Phaser.GameObjects.Container {
     });
     this.hitArea.on("pointerover", () => this.redraw(true));
     this.hitArea.on("pointerout", () => this.redraw(false));
-    this.fitLabelToWidth();
+    this.fitLabelToBounds();
     this.redraw(false);
     options.scene.add.existing(this);
   }
 
   setLabel(label: string) {
     this.labelText.setText(label);
-    this.fitLabelToWidth();
+    this.fitLabelToBounds();
   }
 
   setEnabled(enabled: boolean) {
@@ -142,10 +153,13 @@ export class PixelButton extends Phaser.GameObjects.Container {
     this.labelText.setAlpha(1);
   }
 
-  private fitLabelToWidth() {
+  private fitLabelToBounds() {
     let fontSize = this.baseFontSize;
     this.labelText.setFontSize(`${fontSize}px`);
-    while (fontSize > 16 && this.labelText.width > this.buttonWidth - 22) {
+    while (
+      fontSize > 14 &&
+      (this.labelText.width > this.buttonWidth - 22 || this.labelText.height > this.buttonHeight - 10)
+    ) {
       fontSize -= 1;
       this.labelText.setFontSize(`${fontSize}px`);
     }

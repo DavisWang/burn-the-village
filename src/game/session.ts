@@ -1,5 +1,6 @@
 import { BUILT_IN_LEVELS } from "./levels";
 import { cloneLevel, createBlankLevel } from "./editor-draft";
+import { getLocale } from "../i18n";
 import type { LevelCatalogEntry, LevelDefinition } from "./types";
 
 /*
@@ -18,7 +19,7 @@ function slugify(value: string): string {
 
 class GameSession {
   private customLevels: LevelDefinition[] = [];
-  private editorDraft = createBlankLevel();
+  private editorDraft = createBlankLevel("custom-level", getLocale());
 
   getCatalog(): LevelCatalogEntry[] {
     return [
@@ -54,7 +55,7 @@ class GameSession {
   }
 
   resetEditorDraft() {
-    this.editorDraft = createBlankLevel();
+    this.editorDraft = createBlankLevel("custom-level", getLocale());
   }
 }
 

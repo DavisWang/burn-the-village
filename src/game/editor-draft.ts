@@ -1,4 +1,6 @@
 import { GRID_SIZE } from "./constants";
+import type { Locale } from "../i18n";
+import { getDefaultCustomLevelName } from "../i18n";
 import { validateLevel } from "./level-io";
 import { createStructure } from "./structureCatalog";
 import type {
@@ -38,10 +40,10 @@ export function cloneLevel(level: LevelDefinition): LevelDefinition {
   };
 }
 
-export function createBlankLevel(id = "custom-level"): LevelDefinition {
+export function createBlankLevel(id = "custom-level", locale: Locale = "en"): LevelDefinition {
   return {
     id,
-    name: "Custom Level",
+    name: getDefaultCustomLevelName(locale),
     gridSize: GRID_SIZE,
     resourceBudget: { hayCells: 56, tntCount: 2 },
     completionPct: 0.6,
@@ -163,5 +165,5 @@ export function removeAt(level: LevelDefinition, point: Point): LevelDefinition 
 }
 
 export function isLevelValid(level: LevelDefinition): boolean {
-  return validateLevel(level).length === 0;
+  return validateLevel(level, "en").length === 0;
 }

@@ -101,6 +101,21 @@ export function getMenuPanelLayout() {
   };
 }
 
+export function getMenuLocaleToggleLayout() {
+  const menu = getMenuPanelLayout();
+  const width = 104;
+  const height = 34;
+  const inset = 10;
+
+  return {
+    x: menu.contentX + menu.contentWidth - width - inset,
+    y: menu.contentY + menu.contentHeight - height - inset,
+    width,
+    height,
+    segmentWidth: width / 2
+  };
+}
+
 export function getLevelSelectSidebarLayout() {
   const contentWidth = 180;
   const contentX = SIDEBAR_ORIGIN.x + Math.floor((SIDEBAR_WIDTH - contentWidth) / 2);
@@ -243,7 +258,7 @@ export function getEditorBottomControlLayout() {
     nameLabelY: HUD_ORIGIN.y + 18,
     nameValueY: HUD_ORIGIN.y + 48,
     groupLabelY: HUD_ORIGIN.y + 72,
-    groupControlY: HUD_ORIGIN.y + 104,
+    groupControlY: HUD_ORIGIN.y + 110,
     groupWidth,
     groupGap,
     budgetButtonWidth,
@@ -360,6 +375,10 @@ export function getGameSidebarLayout() {
   const brushRowX = SIDEBAR_ORIGIN.x + Math.floor((SIDEBAR_WIDTH - brushRowWidth) / 2);
   const speedButtonWidth = 56;
   const speedRowX = contentX;
+  const brushLabelY = SIDEBAR_ORIGIN.y + 124;
+  const brushButtonsY = brushLabelY + 30;
+  const speedLabelY = SIDEBAR_ORIGIN.y + 224;
+  const speedButtonsY = speedLabelY + 30;
   const actionHeight = 44;
   const actionGap = 12;
   const actionBottomY = SIDEBAR_ORIGIN.y + MAP_SIZE - 18 - actionHeight;
@@ -374,8 +393,12 @@ export function getGameSidebarLayout() {
     brushRowX,
     brushButtonWidth,
     brushGap,
+    brushLabelY,
+    brushButtonsY,
     speedRowX,
     speedButtonWidth,
+    speedLabelY,
+    speedButtonsY,
     speedLabelCenterX: SIDEBAR_ORIGIN.x + Math.floor(SIDEBAR_WIDTH / 2),
     speedLabelMaxWidth: contentWidth - speedButtonWidth * 2 - 16,
     sectionLabelX: contentX,
@@ -392,13 +415,13 @@ export function getGameSummaryLayout() {
   const dialogX = CANVAS_CENTER_X - dialogWidth / 2;
   const dialogY = 206;
   const titleY = dialogY + 54;
-  const statsY = dialogY + 118;
-  const rankY = dialogY + 156;
+  const statsY = dialogY + 114;
+  const rankY = dialogY + 168;
   const buttonWidth = 240;
-  const buttonHeight = 48;
+  const buttonHeight = 46;
   const buttonX = CANVAS_CENTER_X - buttonWidth / 2;
-  const buttonGap = 14;
-  const bottomPadding = 18;
+  const buttonGap = 12;
+  const bottomPadding = 14;
   const thirdButtonY = dialogY + dialogHeight - bottomPadding - buttonHeight;
   const secondButtonY = thirdButtonY - buttonGap - buttonHeight;
   const firstButtonY = secondButtonY - buttonGap - buttonHeight;
@@ -417,7 +440,7 @@ export function getGameSummaryLayout() {
     firstButtonY,
     secondButtonY,
     thirdButtonY,
-    summaryContentBottomY: rankY + 28
+    summaryContentBottomY: rankY + 24
   };
 }
 

@@ -7,11 +7,12 @@ This document describes what the repo ships today. When this file conflicts with
 | Area | Shipped behavior | Notes |
 | --- | --- | --- |
 | Boot flow | `main.ts` waits for the pixel font, creates the Phaser game, then enters `BootScene` and `MenuScene` | Avoids a system-font flash on first render. |
-| Menu | Full-panel splash screen with `LEVEL SELECT` and `LEVEL EDITOR` | No empty sidebar/HUD framing on the menu. |
-| Level select | Shows built-in levels, scrolls long lists, imports JSON level files into the current session | Imported levels are available immediately, but only for the current page load. |
-| Gameplay | Fixed 32x32 board, hay brush sizes `1x1`, `2x2` top-left anchored, and `3x3`, TNT placement, speed control, score, rank, progress meter, obstacle terrain (`deepWater`, `wetTerrain`, `wall`), end-of-run summary, and gameplay SFX | Fire spread is probabilistic, but seeded per run/tick so the simulation is still reproducible from state. |
-| Level editor | Places fire sources, structures, and terrain obstacles; edits hay/TNT budgets and completion goal; imports/exports JSON; and play-tests directly into `GameScene` | Editing is still constrained to the existing structure catalog, obstacle tile set, and fixed grid size. |
-| Audio | One looping music track, a shared `SOUND ON/OFF` mute toggle, `M` shortcut support, and lean UI/gameplay SFX | Audio unlocks on first user interaction and persists across scene changes for the current page load. |
+| Menu | Full-panel splash screen with `LEVEL SELECT`, `LEVEL EDITOR`, and a bottom-right `EN | CN` locale toggle | No empty sidebar/HUD framing on the menu. |
+| Level select | Shows built-in levels, scrolls long lists, imports JSON level files into the current session, and localizes shipped copy in English or Simplified Chinese | Imported levels are available immediately, but only for the current page load. |
+| Gameplay | Fixed 32x32 board, hay brush sizes `1x1`, `2x2` top-left anchored, and `3x3`, TNT placement, speed control, score, rank, progress meter, obstacle terrain (`deepWater`, `wetTerrain`, `wall`), localized HUD/summary copy, and gameplay SFX | Fire spread is probabilistic, but seeded per run/tick so the simulation is still reproducible from state. |
+| Level editor | Places fire sources, structures, and terrain obstacles; edits hay/TNT budgets and completion goal; imports/exports JSON; localizes overlays/status copy; and play-tests directly into `GameScene` | Editing is still constrained to the existing structure catalog, obstacle tile set, and fixed grid size. |
+| Audio | One looping music track, a shared speaker-style mute toggle, `M` shortcut support, and lean UI/gameplay SFX | Audio unlocks on first user interaction and persists across scene changes for the current page load. |
+| Localization + typography | `en` and Simplified Chinese (`zhHans`) ship today, with Fusion Pixel used for Chinese canvas text | The selected locale is runtime-only and lasts for the current page load. |
 | Built-in content | Nine built-in levels, including a permissive `Test` level | Defined in `src/game/levels.ts`. |
 | Deployment | GitHub Pages workflow present | Intended hosting path for the web build. |
 
@@ -21,6 +22,7 @@ This document describes what the repo ships today. When this file conflicts with
 | --- | --- | --- |
 | Persistence | Custom levels live only in `GameSession` memory | A refresh clears imported levels and the editor draft. |
 | Canvas-first UI | Primary interface is drawn inside Phaser, not built from visible DOM controls | Retro style consistency matters more than HTML form convenience. |
+| Locale switching | Only the splash menu exposes the `EN | CN` toggle in v1 | Other scenes follow the active runtime locale, but do not expose their own switcher yet. |
 | Text entry | Name and budget entry still rely on hidden DOM inputs via `domBridge` | This is a practical bridge for input inside a canvas-driven app, not the final UX ideal. |
 | Fixed geometry | Layout assumes the current panel/map/sidebar/HUD proportions | Most UI regressions happened when geometry drifted without shared helpers/tests. |
 | Editor validation | Structural validity is enforced; "is this goal/budget reasonable?" is not | The editor prevents malformed levels, not unfun levels. |
@@ -33,6 +35,7 @@ This document describes what the repo ships today. When this file conflicts with
 | Persistent level storage / DB | Not shipped | The concept doc mentions a DB, but `src/game/session.ts` is intentionally in-memory only. |
 | Mobile wrapper / iOS app | Not shipped | Mentioned only as a future possibility in the concept doc. |
 | Goal attainability validation | Not shipped | The concept doc and editor TODOs both leave this for later. |
+| More languages / richer locale controls | Not shipped | The repo currently ships only English and Simplified Chinese, with the toggle on the menu only. |
 | Advanced content pipeline / asset toolchain | Not shipped | Visuals are mostly code-driven textures and Phaser drawing helpers today. |
 
 ## What Is Working Well

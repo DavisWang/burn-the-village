@@ -21,6 +21,7 @@ import {
 import { BUILT_IN_LEVELS } from "../game/levels";
 import { getBrushFootprint } from "../game/brushes";
 import { getDefaultGameplayControls } from "../game/gameplay-controls";
+import { formatPercent, getDisplayLevelName, getLocale, getSpeedLabel, getTranslations, type Locale } from "../i18n";
 import { session } from "../game/session";
 import {
   applyHayBrush,
@@ -44,7 +45,7 @@ import {
 } from "../ui/layout";
 import { PixelButton } from "../ui/pixel-button";
 import { getRankDisplay } from "../ui/rank-display";
-import { PIXEL_FONT_FAMILY, pixelFontSize } from "../ui/typography";
+import { getPixelFontFamily, getPixelFontStyle, pixelFontSize } from "../ui/typography";
 
 /*
  * GameScene is mostly an orchestrator.
@@ -82,12 +83,14 @@ export class GameScene extends Phaser.Scene {
   private hoverCells: Point[] = [];
   private accumulator = 0;
   private fromEditor = false;
+  private locale: Locale = "en";
 
   constructor() {
     super("GameScene");
   }
 
   init(data: GameSceneData) {
+    this.locale = getLocale();
     const level = data.level ?? (data.levelId ? session.getLevelById(data.levelId) : undefined);
     if (!level) {
       throw new Error("Level not found.");
@@ -105,15 +108,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    const strings = getTranslations(this.locale);
+    const fontFamily = getPixelFontFamily(this.locale);
     drawPanelFrame(this.add.graphics());
     addGlobalAudioToggle(this);
 
     this.add
-      .text(MAP_ORIGIN.x, HEADER_Y, this.level.name, {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(24),
+      .text(MAP_ORIGIN.x, HEADER_Y, getDisplayLevelName(this.level, this.locale), {
+        fontFamily,
+        fontSize: pixelFontSize(24, this.locale),
         color: "#fce7b2",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         resolution: 2
       })
       .setOrigin(0, 0.5);
@@ -124,8 +129,8 @@ export class GameScene extends Phaser.Scene {
     this.overlayGraphics.setDepth(getGameSummaryDepths().overlay);
     this.infoText = this.add
       .text(SIDEBAR_ORIGIN.x + 18, SIDEBAR_ORIGIN.y + 322, "", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(16),
+        fontFamily,
+        fontSize: pixelFontSize(16, this.locale),
         color: "#fce7b2",
         resolution: 2,
         lineSpacing: 8,
@@ -135,8 +140,8 @@ export class GameScene extends Phaser.Scene {
 
     this.statusText = this.add
       .text(HUD_ORIGIN.x + 22, HUD_ORIGIN.y + 124, "", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(14),
+        fontFamily,
+        fontSize: pixelFontSize(14, this.locale),
         color: "#bfa16e",
         resolution: 2,
         wordWrap: { width: PANEL_WIDTH - 48 }
@@ -144,11 +149,11 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0, 0);
     const progressLayout = getGameProgressBarLayout();
     this.progressLabelText = this.add
-      .text(progressLayout.centerX, progressLayout.labelY, "Progress", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(16),
+      .text(progressLayout.centerX, progressLayout.labelY, strings.gameplay.progress, {
+        fontFamily,
+        fontSize: pixelFontSize(16, this.locale),
         color: "#fce7b2",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         stroke: "#2a1c12",
         strokeThickness: 4,
         resolution: 2
@@ -159,20 +164,20 @@ export class GameScene extends Phaser.Scene {
     getGameHudStatSlots().forEach((slot) => {
       this.hudStatLabels[slot.key] = this.add
         .text(slot.labelX, slot.labelY, slot.key.toUpperCase(), {
-          fontFamily: PIXEL_FONT_FAMILY,
-          fontSize: pixelFontSize(16),
+          fontFamily,
+          fontSize: pixelFontSize(16, this.locale),
           color: "#bfa16e",
-          fontStyle: "bold",
+          fontStyle: getPixelFontStyle(this.locale),
           resolution: 2
         })
         .setOrigin(0, 0);
 
       this.hudStatTexts[slot.key] = this.add
         .text(slot.valueX, slot.valueY, "", {
-          fontFamily: PIXEL_FONT_FAMILY,
-          fontSize: pixelFontSize(20),
+          fontFamily,
+          fontSize: pixelFontSize(20, this.locale),
           color: "#fce7b2",
-          fontStyle: "bold",
+          fontStyle: getPixelFontStyle(this.locale),
           resolution: 2
         })
         .setOrigin(0, 0);
@@ -180,10 +185,10 @@ export class GameScene extends Phaser.Scene {
 
     this.summaryTitleText = this.add
       .text(CANVAS_CENTER_X, getGameSummaryLayout().titleY, "", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(24),
+        fontFamily,
+        fontSize: pixelFontSize(24, this.locale),
         color: "#fce7b2",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         align: "center",
         resolution: 2
       })
@@ -193,8 +198,8 @@ export class GameScene extends Phaser.Scene {
 
     this.summaryText = this.add
       .text(CANVAS_CENTER_X, getGameSummaryLayout().statsY, "", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(20),
+        fontFamily,
+        fontSize: pixelFontSize(20, this.locale),
         color: "#fce7b2",
         align: "center",
         resolution: 2,
@@ -206,10 +211,10 @@ export class GameScene extends Phaser.Scene {
 
     this.summaryRankText = this.add
       .text(CANVAS_CENTER_X, getGameSummaryLayout().rankY, "", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(22),
+        fontFamily,
+        fontSize: pixelFontSize(22, this.locale),
         color: "#fce7b2",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         align: "center",
         resolution: 2
       })
@@ -243,6 +248,8 @@ export class GameScene extends Phaser.Scene {
 
   private buildSidebar() {
     const layout = getGameSidebarLayout();
+    const strings = getTranslations(this.locale);
+    const fontFamily = getPixelFontFamily(this.locale);
 
     this.toolButtons = {
       hay: new PixelButton({
@@ -251,7 +258,8 @@ export class GameScene extends Phaser.Scene {
         y: SIDEBAR_ORIGIN.y + 44,
         width: layout.dualButtonWidth,
         height: 64,
-        label: "HAY",
+        label: strings.gameplay.hay,
+        locale: this.locale,
         onClick: () => {
           this.tool = "hay";
           this.renderScene();
@@ -263,7 +271,8 @@ export class GameScene extends Phaser.Scene {
         y: SIDEBAR_ORIGIN.y + 44,
         width: layout.dualButtonWidth,
         height: 64,
-        label: "TNT",
+        label: strings.gameplay.tnt,
+        locale: this.locale,
         onClick: () => {
           this.tool = "tnt";
           this.renderScene();
@@ -272,11 +281,11 @@ export class GameScene extends Phaser.Scene {
     };
 
     this.add
-      .text(layout.sectionLabelX, SIDEBAR_ORIGIN.y + 124, "BRUSH", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(16),
+      .text(layout.sectionLabelX, layout.brushLabelY, strings.gameplay.brush, {
+        fontFamily,
+        fontSize: pixelFontSize(16, this.locale),
         color: "#bfa16e",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         resolution: 2
       })
       .setOrigin(0, 0);
@@ -285,10 +294,11 @@ export class GameScene extends Phaser.Scene {
       const button = new PixelButton({
         scene: this,
         x: layout.brushRowX + index * (layout.brushButtonWidth + layout.brushGap),
-        y: SIDEBAR_ORIGIN.y + 148,
+        y: layout.brushButtonsY,
         width: layout.brushButtonWidth,
         height: 48,
         label: brush.label,
+        locale: this.locale,
         onClick: () => {
           this.brushIndex = index;
           this.renderScene();
@@ -298,11 +308,11 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.add
-      .text(layout.sectionLabelX, SIDEBAR_ORIGIN.y + 218, "SPEED", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(16),
+      .text(layout.sectionLabelX, layout.speedLabelY, strings.gameplay.speed, {
+        fontFamily,
+        fontSize: pixelFontSize(16, this.locale),
         color: "#bfa16e",
-        fontStyle: "bold",
+        fontStyle: getPixelFontStyle(this.locale),
         resolution: 2
       })
       .setOrigin(0, 0);
@@ -310,10 +320,11 @@ export class GameScene extends Phaser.Scene {
     new PixelButton({
       scene: this,
       x: layout.speedRowX,
-      y: SIDEBAR_ORIGIN.y + 242,
+      y: layout.speedButtonsY,
       width: layout.speedButtonWidth,
       height: 44,
       label: "-",
+      locale: this.locale,
       onClick: () => {
         this.state = setSpeedIndex(this.state, this.state.speedIndex - 1);
       }
@@ -321,18 +332,19 @@ export class GameScene extends Phaser.Scene {
     new PixelButton({
       scene: this,
       x: layout.speedRowX + layout.contentWidth - layout.speedButtonWidth,
-      y: SIDEBAR_ORIGIN.y + 242,
+      y: layout.speedButtonsY,
       width: layout.speedButtonWidth,
       height: 44,
       label: "+",
+      locale: this.locale,
       onClick: () => {
         this.state = setSpeedIndex(this.state, this.state.speedIndex + 1);
       }
     });
     this.speedText = this.add
-      .text(layout.speedLabelCenterX, SIDEBAR_ORIGIN.y + 265, "", {
-        fontFamily: PIXEL_FONT_FAMILY,
-        fontSize: pixelFontSize(14),
+      .text(layout.speedLabelCenterX, layout.speedButtonsY + 23, "", {
+        fontFamily,
+        fontSize: pixelFontSize(14, this.locale),
         color: "#fce7b2",
         resolution: 2
       })
@@ -344,7 +356,8 @@ export class GameScene extends Phaser.Scene {
       y: layout.actionTopY,
       width: layout.contentWidth,
       height: layout.actionHeight,
-      label: "RESET",
+      label: strings.gameplay.reset,
+      locale: this.locale,
       onClick: () => {
         this.state = resetSimulation(this.state);
         this.accumulator = 0;
@@ -357,7 +370,8 @@ export class GameScene extends Phaser.Scene {
       y: layout.actionBottomY,
       width: layout.contentWidth,
       height: layout.actionHeight,
-      label: this.fromEditor ? "EDITOR" : "LEVELS",
+      label: this.fromEditor ? strings.common.editor : strings.common.levels,
+      locale: this.locale,
       onClick: () => {
         this.scene.start(this.fromEditor ? "EditorScene" : "LevelSelectScene");
       }
@@ -394,6 +408,7 @@ export class GameScene extends Phaser.Scene {
 
   private buildSummaryButtons() {
     const layout = getGameSummaryLayout();
+    const strings = getTranslations(this.locale);
 
     this.summaryPrimaryButton = new PixelButton({
       scene: this,
@@ -401,7 +416,8 @@ export class GameScene extends Phaser.Scene {
       y: layout.firstButtonY,
       width: layout.buttonWidth,
       height: layout.buttonHeight,
-      label: "RETRY",
+      label: strings.common.retry,
+      locale: this.locale,
       onClick: () => {
         this.state = resetSimulation(this.state);
         this.accumulator = 0;
@@ -414,7 +430,8 @@ export class GameScene extends Phaser.Scene {
       y: layout.secondButtonY,
       width: layout.buttonWidth,
       height: layout.buttonHeight,
-      label: this.fromEditor ? "EDITOR" : "LEVELS",
+      label: this.fromEditor ? strings.common.editor : strings.common.levels,
+      locale: this.locale,
       onClick: () => {
         this.scene.start(this.fromEditor ? "EditorScene" : "LevelSelectScene");
       }
@@ -426,7 +443,8 @@ export class GameScene extends Phaser.Scene {
       y: layout.thirdButtonY,
       width: layout.buttonWidth,
       height: layout.buttonHeight,
-      label: "NEXT LEVEL",
+      label: strings.common.nextLevel,
+      locale: this.locale,
       onClick: () => {
         const next = this.findNextLevelId();
         if (next) {
@@ -453,9 +471,9 @@ export class GameScene extends Phaser.Scene {
     this.hudGraphics.clear();
     drawSimulationBoard(this.boardGraphics, this.state, this.hoverCells);
     this.drawHud();
-    this.speedText.setText(SPEED_OPTIONS[this.state.speedIndex].label);
+    this.speedText.setText(getSpeedLabel(this.state.speedIndex, this.locale));
     this.fitSpeedLabel();
-    getGameBottomStats(this.level, this.state).forEach((item) => {
+    getGameBottomStats(this.level, this.state, this.locale).forEach((item) => {
       const text = this.hudStatTexts[item.key];
       const label = this.hudStatLabels[item.key];
       if (label) {
@@ -469,7 +487,7 @@ export class GameScene extends Phaser.Scene {
         item.color ?? (item.tone === "warning" ? "#e9bb42" : item.tone === "success" ? "#83dd4c" : "#fce7b2")
       );
     });
-    this.infoText.setText(getGameSidebarLines(this.state).join("\n"));
+    this.infoText.setText(getGameSidebarLines(this.state, this.locale).join("\n"));
 
     this.toolButtons?.hay.setSelected(this.tool === "hay");
     this.toolButtons?.tnt.setSelected(this.tool === "tnt");
@@ -533,8 +551,8 @@ export class GameScene extends Phaser.Scene {
 
   private fitSpeedLabel() {
     const layout = getGameSidebarLayout();
-    let fontSize = Number.parseInt(pixelFontSize(14), 10);
-    const minFontSize = Number.parseInt(pixelFontSize(8), 10);
+    let fontSize = Number.parseInt(pixelFontSize(14, this.locale), 10);
+    const minFontSize = Number.parseInt(pixelFontSize(8, this.locale), 10);
 
     // `SLOWEST` and `FASTEST` are the limiting cases; fit within the gap between
     // the `-` and `+` buttons instead of letting the label clip.
@@ -564,23 +582,24 @@ export class GameScene extends Phaser.Scene {
 
     const success = this.state.outcome === "successResolved";
     const next = this.findNextLevelId();
-    const rank = getRankDisplay(this.state.medal);
-    this.summaryTitleText.setText(success ? "Level Cleared!" : "Run Failed!");
+    const strings = getTranslations(this.locale);
+    const rank = getRankDisplay(this.state.medal, this.locale);
+    this.summaryTitleText.setText(success ? strings.gameplay.levelCleared : strings.gameplay.runFailed);
     this.summaryTitleText.setVisible(true);
     this.summaryText.setText(
       [
-        `Destruction: ${(this.state.destructionPct * 100).toFixed(0)}%`,
-        `Score: ${this.state.score}`
+        strings.gameplay.destructionLine(formatPercent(this.state.destructionPct)),
+        strings.gameplay.scoreLine(this.state.score)
       ].join("\n")
     );
     this.summaryText.setVisible(true);
-    this.summaryRankText.setText(`Rank: ${rank.label}`);
+    this.summaryRankText.setText(strings.gameplay.rankLine(rank.label));
     this.summaryRankText.setColor(rank.color);
     this.summaryRankText.setVisible(true);
 
-    this.summaryPrimaryButton.setLabel(success ? "REPLAY" : "TRY AGAIN");
+    this.summaryPrimaryButton.setLabel(success ? strings.common.replay : strings.common.tryAgain);
     this.summaryPrimaryButton.setVisible(true);
-    this.summarySecondaryButton.setLabel(this.fromEditor ? "EDITOR" : "LEVELS");
+    this.summarySecondaryButton.setLabel(this.fromEditor ? strings.common.editor : strings.common.levels);
     this.summarySecondaryButton.setVisible(true);
     this.nextButton.setVisible(Boolean(success && next && !this.fromEditor));
     this.statusText.setText("");

@@ -169,9 +169,15 @@ describe("board textures", () => {
 
 describe("rank display", () => {
   it("maps ranks to title-cased labels and medal colors", () => {
-    expect(getRankDisplay("bronze")).toEqual({ label: "Bronze", color: "#c58f52" });
-    expect(getRankDisplay("silver")).toEqual({ label: "Silver", color: "#d8d1c4" });
-    expect(getRankDisplay("gold")).toEqual({ label: "Gold", color: "#f4d35e" });
+    expect(getRankDisplay("bronze", "en")).toEqual({ label: "Bronze", color: "#c58f52" });
+    expect(getRankDisplay("silver", "en")).toEqual({ label: "Silver", color: "#d8d1c4" });
+    expect(getRankDisplay("gold", "en")).toEqual({ label: "Gold", color: "#f4d35e" });
+  });
+
+  it("maps ranks to localized labels when Simplified Chinese is active", () => {
+    expect(getRankDisplay("bronze", "zhHans")).toEqual({ label: "铜", color: "#c58f52" });
+    expect(getRankDisplay("silver", "zhHans")).toEqual({ label: "银", color: "#d8d1c4" });
+    expect(getRankDisplay("gold", "zhHans")).toEqual({ label: "金", color: "#f4d35e" });
   });
 });
 
