@@ -1,4 +1,8 @@
 import type { LevelDefinition, Medal, TerrainType } from "../game/types";
+import {
+  GENERATED_CAMPAIGN_NAME_MAP_EN,
+  GENERATED_CAMPAIGN_NAME_MAP_ZH_HANS
+} from "../game/generated-campaign";
 
 export type Locale = "en" | "zhHans";
 
@@ -178,17 +182,7 @@ const TRANSLATIONS = {
       gold: "Gold"
     },
     speedLabels: ["SLOWEST", "SLOW", "NORMAL", "FAST", "FASTEST"],
-    builtInLevelNames: {
-      test: "Test",
-      "ember-path": "EMBER PATH",
-      "double-bend": "DOUBLE BEND",
-      "forked-village": "FORKED VILLAGE",
-      "courtyard-run": "COURTYARD RUN",
-      "three-roofs": "THREE ROOFS",
-      "hall-breach": "HALL BREACH",
-      "river-mouth": "RIVER MOUTH",
-      "final-pyres": "FINAL PYRES"
-    },
+    builtInLevelNames: GENERATED_CAMPAIGN_NAME_MAP_EN,
     levelIO: {
       requiredLevelId: "Level id is required.",
       requiredLevelName: "Level name is required.",
@@ -294,17 +288,7 @@ const TRANSLATIONS = {
       gold: "金"
     },
     speedLabels: ["最慢", "慢速", "标准", "快速", "最快"],
-    builtInLevelNames: {
-      test: "测试",
-      "ember-path": "余烬小径",
-      "double-bend": "双重弯道",
-      "forked-village": "岔路村庄",
-      "courtyard-run": "庭院奔袭",
-      "three-roofs": "三顶屋",
-      "hall-breach": "大厅突破",
-      "river-mouth": "河口",
-      "final-pyres": "终末火堆"
-    },
+    builtInLevelNames: GENERATED_CAMPAIGN_NAME_MAP_ZH_HANS,
     levelIO: {
       requiredLevelId: "关卡 ID 不能为空。",
       requiredLevelName: "关卡名称不能为空。",

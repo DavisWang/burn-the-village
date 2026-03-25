@@ -2,6 +2,23 @@
 
 ## Plan
 
+- [x] Replace the hand-authored campaign templates with a seeded procedural preview generator that produces less linear fire/structure layouts and freeform obstacle shapes.
+- [x] Extend the deterministic solver/generator path to support variable completion goals between `50%` and `100%`, and use that goal-aware minimum solve cost in the difficulty calculation.
+- [x] Switch the generated built-in artifact from the current 50-level campaign to a 5-level preview pack for method review, with one generated report covering the new preview output.
+- [x] Update regression coverage and durable docs so they match the preview-generator workflow and the new goal/variety guarantees.
+- [x] Verify the preview pass with `npm run generate:levels -- 5`, `npm run build`, and `npm test`, then capture the results in the review notes.
+
+- [x] Replace the 5-level review pack with a shipped 20-level generated campaign: first 10 levels as the mechanic tutorial, last 10 levels as the harder final test.
+- [x] Keep the tutorial order explicit in generation/tests: core hay play, then TNT, deep water, wet terrain, and walls.
+- [x] Re-tune the generator so tutorial walls do not become a difficulty spike and the final 10 levels still ramp upward overall.
+- [x] Verify the 20-level campaign pass with `npm run generate:levels -- 20`, `npm run build`, and `npm test`, then capture the results in the review notes.
+
+- [x] Add an offline `generate:levels` pipeline that builds a 50-level campaign, solver-validates 100% destruction, and emits generated campaign artifacts plus a balance report.
+- [x] Add a generator-only deterministic solver and curriculum-aware level generator covering the 20-level mechanic ramp and 50-level total campaign shape.
+- [x] Replace the current built-in campaign and localized built-in name maps with generated 50-level data while keeping gameplay/editor public interfaces unchanged.
+- [x] Add regression coverage for the solver, generator band rules, localized name coverage, and built-in campaign invariants.
+- [x] Verify the campaign pass with `npm test`, `npm run build`, and `npm run generate:levels -- 50`, then capture the results in the review notes.
+
 - [x] Add a root `README.md` that defines the project's canonical source of truth, current scope, and doc map for future maintainers/LLMs.
 - [x] Add a `docs/` knowledge base covering current state, architecture, design decisions, regressions/lessons, future direction, and tests-as-spec.
 - [x] Relabel `Burn the Village.md` as the original concept doc and clarify that implementation behavior may differ from the initial vision.
@@ -37,6 +54,32 @@
 - [x] Verify the obstacle pass with `npm test` and `npm run build`, then update the durable repo docs/context.
 
 ## Review
+
+- Finished the 20-level generated campaign pass by keeping levels 1-13 stable, isolating the failing tail levels with a debug generator entry point, and only recreating levels 14-20 until each slot validated.
+- Relaxed campaign ordering validation so the first 10 tutorial levels can prioritize mechanic introduction while levels 11-20 still ramp upward as the actual final test band.
+- Re-generated the shipped campaign artifact and balance report with the final 20-level lineup, then re-verified with `npm run generate:levels -- 20`, `npm test`, and `npm run build`.
+
+- Replaced the temporary 5-level review pack with a 20-level generated campaign request: levels 1-10 now follow the tutorial mechanic order and levels 11-20 serve as the harder final test.
+- Tightened the regression spec around the actual request instead of the earlier over-constrained tutorial interpretation, so wall introduction no longer assumes a forced TNT combo on level 10.
+- Reworked the generator search path so cheap layout and deterministic-mechanic checks reject bad candidates before expensive replay-budget tuning, which makes larger campaign generation more practical.
+- Added progress logging to the generator CLI so future level-generation bottlenecks are visible by spec instead of looking like a generic hang.
+
+- Re-tuned the 5-level preview generator after playtest feedback so live probabilistic spread no longer makes levels feel unfair: the generator now requires a minimum multi-seed replay success rate, adds forgiveness slack to granted resources, and reports replay reliability directly in the balance report.
+- Updated the preview difficulty metric so low replay reliability increases reported difficulty instead of being ignored, which means fragile levels are automatically granted more slack during generation.
+- Changed the budget search to hit the replay-success threshold first and then tighten back down to the target-pressure floor, so preview levels stay fair under randomness without ballooning all the way to the loosest possible budgets.
+- Added per-preview difficulty windows so the TNT introduction can stay easier than the obstacle-focused follow-up levels, while levels 3-5 are rejected if they come out too soft.
+
+- Replaced the prior hand-authored campaign flow with a seeded 5-level procedural preview generator that starts from scattered fire sources and structures, then grows terrain and budgeted solve checks from those anchors instead of pushing everything into left-to-right lanes.
+- Added goal-aware deterministic solving for authored completion targets between `50%` and `100%`, and folded the goal percentage into the preview difficulty score so lower-clearance goals read as easier in the report.
+- Switched the shipped generated artifact and balance report to the new 5-level preview pack, with one sample each for core hay play, TNT, deep water, wet terrain, and walls.
+- Tightened regression coverage around preview mechanic spread, freeform obstacle shapes, localization coverage, and partial-goal solving.
+- Re-verified the preview pass with `npm run generate:levels -- 5`, `npm run build`, and `npm test`.
+
+- Added an offline campaign content pipeline with `npm run generate:levels -- 50`, a generator-only deterministic solver, and a curriculum-aware 50-level template catalog that introduces TNT, deep water, wet terrain, and walls within the first 20 levels.
+- Replaced the old built-in catalog with generated campaign data plus generated English/Simplified Chinese built-in name maps, and emitted a checked-in balance report at `docs/generated-campaign-report.md`.
+- Tightened the tutorial sequencing so the first 20 levels follow authored mechanic order instead of being re-sorted out of the intended lesson flow, while levels 21-50 still ramp cleanly from reinforcement into mastery.
+- Added regression coverage for solver frontier behavior, TNT tutorial guarantees, campaign ordering, localization coverage, and built-in campaign invariants.
+- Re-verified the campaign pass with `npm run generate:levels -- 50`, `npm run build`, and `npm test`.
 
 - Added a terrain layer to `LevelDefinition` and runtime grid cells, plus backward-compatible level-file parsing: older `version: 1` JSON still imports with empty terrain, while newly exported files serialize as `version: 2` with explicit `terrainTiles`.
 - Implemented three authored obstacle types with distinct gameplay roles: `deepWater` hard-blocks placement and blast reach, `wetTerrain` weakens hay ignition reliability without killing TNT, and `wall` blocks fire/placement until a TNT blast breaches it into normal ground.

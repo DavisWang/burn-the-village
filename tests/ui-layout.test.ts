@@ -270,6 +270,17 @@ describe("level select layout", () => {
     expect(clampLevelSelectScroll(14, layout.maxScroll + 40)).toBe(layout.maxScroll);
   });
 
+  it("keeps a visible scrollbar inside the map panel without shrinking card space", () => {
+    const layout = getLevelSelectGridLayout(14);
+
+    expect(layout.viewportWidth).toBe(layout.cardWidth * layout.columns + layout.cardGapX);
+    expect(layout.viewportWidth).toBeLessThanOrEqual(MAP_SIZE - layout.scrollbarWidth - layout.scrollbarInsetRight);
+    expect(layout.scrollbarX).toBeGreaterThanOrEqual(layout.viewportX + layout.viewportWidth);
+    expect(layout.scrollbarX + layout.scrollbarWidth).toBeLessThanOrEqual(layout.viewportX + MAP_SIZE);
+    expect(layout.scrollbarY).toBeGreaterThanOrEqual(layout.viewportY);
+    expect(layout.scrollbarY + layout.scrollbarHeight).toBeLessThanOrEqual(layout.viewportY + layout.viewportHeight);
+  });
+
   it("removes stat copy from the level tile body", () => {
     const stats = getLevelCardStatsText({
       level: makeLevel({ completionPct: 0.7, resourceBudget: { hayCells: 9, tntCount: 2 } }),

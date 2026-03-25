@@ -147,6 +147,12 @@ export function getLevelSelectGridLayout(entryCount: number) {
   const viewportY = MAP_ORIGIN.y;
   const viewportWidth = cardWidth * columns + cardGapX;
   const viewportHeight = MAP_SIZE;
+  const scrollbarInsetRight = 4;
+  const scrollbarWidth = 8;
+  const scrollbarHeight = MAP_SIZE - 24;
+  const scrollbarX = MAP_ORIGIN.x + MAP_SIZE - scrollbarInsetRight - scrollbarWidth;
+  const scrollbarY = MAP_ORIGIN.y + Math.floor((MAP_SIZE - scrollbarHeight) / 2);
+  const scrollbarThumbMinHeight = 36;
   const rows = Math.max(1, Math.ceil(entryCount / columns));
   const contentHeight = rows * cardHeight + Math.max(0, rows - 1) * cardGapY;
   const maxScroll = Math.max(0, contentHeight - viewportHeight);
@@ -161,6 +167,12 @@ export function getLevelSelectGridLayout(entryCount: number) {
     viewportY,
     viewportWidth,
     viewportHeight,
+    scrollbarInsetRight,
+    scrollbarWidth,
+    scrollbarHeight,
+    scrollbarX,
+    scrollbarY,
+    scrollbarThumbMinHeight,
     rows,
     contentHeight,
     maxScroll

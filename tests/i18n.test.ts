@@ -17,8 +17,8 @@ import { createSimulation } from "../src/game/simulation";
 
 function makeLevel(overrides: Partial<LevelDefinition> = {}): LevelDefinition {
   return {
-    id: "ember-path",
-    name: "EMBER PATH",
+    id: "campaign-001",
+    name: "1: Wandering Hearth",
     gridSize: 32,
     resourceBudget: { hayCells: 4, tntCount: 2 },
     completionPct: 0.55,
@@ -62,8 +62,8 @@ describe("localized helpers", () => {
     const builtIn = makeLevel();
     const custom = makeLevel({ id: "my-custom", name: "My Custom Level" });
 
-    expect(getDisplayLevelName(builtIn, "en")).toBe("EMBER PATH");
-    expect(getDisplayLevelName(builtIn, "zhHans")).toBe("余烬小径");
+    expect(getDisplayLevelName(builtIn, "en")).toBe("1: Wandering Hearth");
+    expect(getDisplayLevelName(builtIn, "zhHans")).toBe("1: 游火炉影");
     expect(getDisplayLevelName(custom, "zhHans")).toBe("My Custom Level");
   });
 

@@ -18,6 +18,7 @@ Burn the Village is a Phaser + TypeScript web game built around a fixed pixel-ar
 | Level select | Shipped | Built-in levels plus JSON import into the local session. |
 | Gameplay | Shipped | Fire spread, hay brush placement, TNT fuse/explosion, terrain obstacles (`deep water`, `marsh`, `walls`), score, rank, end-of-run summary, and gameplay SFX cues. |
 | Level editor | Shipped | In-canvas authoring for fires, structures, terrain obstacles, resource budgets, goal, import/export, and play test. |
+| Built-in campaign | Shipped | 20 generated campaign levels with a 10-level mechanic tutorial followed by 10 harder final-test levels. |
 | EN/CN localization | Shipped | Splash-screen locale toggle, Simplified Chinese translations for shipped UI/copy, and a self-hosted Fusion Pixel Chinese font. |
 | Custom level persistence | Limited | Lives only in in-memory session state for the current page load. |
 | Audio / music / FX | Shipped | One looping music track, a shared mute control, and a lean set of UI/gameplay effects. |
@@ -31,6 +32,7 @@ Burn the Village is a Phaser + TypeScript web game built around a fixed pixel-ar
 | `npm run dev` | Local development server |
 | `npm test` | Vitest regression suite |
 | `npm run build` | Type-check and production build |
+| `npm run generate:levels -- 20` | Rebuild the current 20-level generated campaign and balance report |
 | `npm run preview` | Preview the production build locally |
 
 ## Documentation Map

@@ -13,7 +13,7 @@ This document describes what the repo ships today. When this file conflicts with
 | Level editor | Places fire sources, structures, and terrain obstacles; edits hay/TNT budgets and completion goal; imports/exports JSON; localizes overlays/status copy; and play-tests directly into `GameScene` | Editing is still constrained to the existing structure catalog, obstacle tile set, and fixed grid size. |
 | Audio | One looping music track, a shared speaker-style mute toggle, `M` shortcut support, and lean UI/gameplay SFX | Audio unlocks on first user interaction and persists across scene changes for the current page load. |
 | Localization + typography | `en` and Simplified Chinese (`zhHans`) ship today, with Fusion Pixel used for Chinese canvas text | The selected locale is runtime-only and lasts for the current page load. |
-| Built-in content | Nine built-in levels, including a permissive `Test` level | Defined in `src/game/levels.ts`. |
+| Built-in content | 20 generated campaign levels with localized names, a 10-level mechanic tutorial, and a 10-level harder final test | Generated into `src/game/generated-campaign.ts` and exposed via `src/game/levels.ts`. |
 | Deployment | GitHub Pages workflow present | Intended hosting path for the web build. |
 
 ## Current Constraints
@@ -34,7 +34,8 @@ This document describes what the repo ships today. When this file conflicts with
 | --- | --- | --- |
 | Persistent level storage / DB | Not shipped | The concept doc mentions a DB, but `src/game/session.ts` is intentionally in-memory only. |
 | Mobile wrapper / iOS app | Not shipped | Mentioned only as a future possibility in the concept doc. |
-| Goal attainability validation | Not shipped | The concept doc and editor TODOs both leave this for later. |
+| Built-in campaign attainability validation | Shipped for the generated campaign only | `npm run generate:levels -- 20` solves each generated level against its authored completion goal under the offline deterministic solver, replay-checks the plan across multiple live seeds, tunes budgets against replay-success and difficulty windows, and emits `docs/generated-campaign-report.md`. |
+| Editor plausibility validation | Not shipped | The editor still blocks malformed budgets/goals, not "is this custom level fun or beatable?" |
 | More languages / richer locale controls | Not shipped | The repo currently ships only English and Simplified Chinese, with the toggle on the menu only. |
 | Advanced content pipeline / asset toolchain | Not shipped | Visuals are mostly code-driven textures and Phaser drawing helpers today. |
 

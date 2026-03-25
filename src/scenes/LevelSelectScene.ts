@@ -23,6 +23,8 @@ import { getPixelFontFamily, getPixelFontStyle, pixelFontSize } from "../ui/typo
 export class LevelSelectScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private cardContainer!: Phaser.GameObjects.Container;
+  private scrollbarTrack!: Phaser.GameObjects.Rectangle;
+  private scrollbarThumb!: Phaser.GameObjects.Rectangle;
   private cards: Phaser.GameObjects.Container[] = [];
   private scrollOffset = 0;
   private maxScroll = 0;
@@ -73,6 +75,26 @@ export class LevelSelectScene extends Phaser.Scene {
     this.cardContainer = this.add.container(0, 0);
     this.cardContainer.setMask(maskGraphics.createGeometryMask());
     this.maxScroll = grid.maxScroll;
+    this.scrollbarTrack = this.add
+      .rectangle(
+        grid.scrollbarX + grid.scrollbarWidth / 2,
+        grid.scrollbarY + grid.scrollbarHeight / 2,
+        grid.scrollbarWidth,
+        grid.scrollbarHeight,
+        0x150d08
+      )
+      .setOrigin(0.5)
+      .setStrokeStyle(2, 0x6b4d26);
+    this.scrollbarThumb = this.add
+      .rectangle(
+        grid.scrollbarX + grid.scrollbarWidth / 2,
+        grid.scrollbarY + grid.scrollbarThumbMinHeight / 2,
+        grid.scrollbarWidth - 2,
+        grid.scrollbarThumbMinHeight,
+        0xc59b5b
+      )
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0xfce7b2);
 
     entries.forEach((entry, index) => {
       const column = index % grid.columns;
@@ -259,5 +281,23 @@ export class LevelSelectScene extends Phaser.Scene {
         nextY + grid.cardHeight >= grid.viewportY && nextY <= grid.viewportY + grid.viewportHeight;
       card.setVisible(visible);
     });
+
+    const thumbHeight = Math.min(
+      grid.scrollbarHeight,
+      Math.max(
+        grid.scrollbarThumbMinHeight,
+        Math.round((grid.viewportHeight / grid.contentHeight) * grid.scrollbarHeight)
+      )
+    );
+    const travel = Math.max(0, grid.scrollbarHeight - thumbHeight);
+    const progress = this.maxScroll === 0 ? 0 : this.scrollOffset / this.maxScroll;
+    const thumbCenterY = grid.scrollbarY + thumbHeight / 2 + travel * progress;
+    const isScrollable = this.maxScroll > 0;
+
+    this.scrollbarTrack.setVisible(isScrollable);
+    this.scrollbarThumb
+      .setVisible(isScrollable)
+      .setSize(grid.scrollbarWidth - 2, thumbHeight)
+      .setPosition(grid.scrollbarX + grid.scrollbarWidth / 2, thumbCenterY);
   }
 }
