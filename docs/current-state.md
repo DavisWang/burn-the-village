@@ -7,7 +7,8 @@ This document describes what the repo ships today. When this file conflicts with
 | Area | Shipped behavior | Notes |
 | --- | --- | --- |
 | Boot flow | `main.ts` waits for the pixel font, creates the Phaser game, then enters `BootScene` and `MenuScene` | Avoids a system-font flash on first render. |
-| Menu | Full-panel splash screen with `LEVEL SELECT`, `LEVEL EDITOR`, and a bottom-right `EN | CN` locale toggle | No empty sidebar/HUD framing on the menu. |
+| Menu | Full-panel splash screen with `LEVEL SELECT`, `HOW TO PLAY`, `LEVEL EDITOR`, and a bottom-right `EN | CN` locale toggle | No empty sidebar/HUD framing on the menu. |
+| How to play | Single-screen reference scene with a labeled mechanic preview board plus short localized guidance for objective, tools, terrain, controls, structures, and scoring | Non-interactive aside from `LEVEL SELECT` and `BACK` navigation; label placement and copy fit are protected by tests. |
 | Level select | Shows built-in levels, scrolls long lists, imports JSON level files into the current session, and localizes shipped copy in English or Simplified Chinese | Imported levels are available immediately, but only for the current page load. |
 | Gameplay | Fixed 32x32 board, hay brush sizes `1x1`, `2x2` top-left anchored, and `3x3`, TNT placement, speed control, score, rank, progress meter, obstacle terrain (`deepWater`, `wetTerrain`, `wall`), localized HUD/summary copy, and gameplay SFX | Fire spread is probabilistic, but seeded per run/tick so the simulation is still reproducible from state. |
 | Level editor | Places fire sources, structures, and terrain obstacles; edits hay/TNT budgets and completion goal; imports/exports JSON; localizes overlays/status copy; and play-tests directly into `GameScene` | Editing is still constrained to the existing structure catalog, obstacle tile set, and fixed grid size. |

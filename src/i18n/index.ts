@@ -28,8 +28,29 @@ type TranslationCatalog = {
     titleBottom: string;
     tagline: string;
     levelSelect: string;
+    howToPlay: string;
     levelEditor: string;
     byline: string;
+  };
+  howToPlay: {
+    heading: string;
+    intro: string;
+    objectiveTitle: string;
+    objectiveCopy: string;
+    toolsTitle: string;
+    toolsCopy: string;
+    terrainTitle: string;
+    terrainCopy: string;
+    structuresTitle: string;
+    structuresCopy: string;
+    controlsTitle: string;
+    controlsCopy: string;
+    scoringTitle: string;
+    scoringCopy: string;
+    mapLabels: Record<
+      "fireSource" | "hay" | "tnt" | "hut" | "house" | "hall" | "deepWater" | "wetTerrain" | "wall",
+      string
+    >;
   };
   levelSelect: {
     heading: string;
@@ -124,8 +145,36 @@ const TRANSLATIONS = {
       titleBottom: "VILLAGE",
       tagline: "LAY THE TRAIL. LIGHT THE FUSE.\nLEAVE NOTHING STANDING.",
       levelSelect: "LEVEL SELECT",
+      howToPlay: "HOW TO PLAY",
       levelEditor: "LEVEL EDITOR",
       byline: "By Davis Wang"
+    },
+    howToPlay: {
+      heading: "HOW TO PLAY",
+      intro: "Burn buildings. Hit the goal.",
+      objectiveTitle: "OBJECTIVE",
+      objectiveCopy: "Reach the goal %.",
+      toolsTitle: "TOOLS",
+      toolsCopy: "Hay spreads fire. TNT opens gaps.",
+      terrainTitle: "TERRAIN",
+      terrainCopy: "Water blocks. Marsh weakens fire. Walls need TNT.",
+      structuresTitle: "STRUCTURES",
+      structuresCopy: "Hut < House < Hall.",
+      controlsTitle: "CONTROLS",
+      controlsCopy: "Drag hay. Click TNT. Reset to retry.",
+      scoringTitle: "SCORING",
+      scoringCopy: "More damage + less waste = better rank.",
+      mapLabels: {
+        fireSource: "FIRE",
+        hay: "HAY",
+        tnt: "TNT",
+        hut: "HUT",
+        house: "HOUSE",
+        hall: "HALL",
+        deepWater: "WATER",
+        wetTerrain: "MARSH",
+        wall: "WALL"
+      }
     },
     levelSelect: {
       heading: "LEVEL SELECT",
@@ -230,8 +279,36 @@ const TRANSLATIONS = {
       titleBottom: "村庄",
       tagline: "铺好引线，点燃导火索。\n让一切化为灰烬。",
       levelSelect: "关卡选择",
+      howToPlay: "玩法说明",
       levelEditor: "关卡编辑器",
       byline: "Davis Wang 制作"
+    },
+    howToPlay: {
+      heading: "玩法说明",
+      intro: "烧掉建筑，打到目标线。",
+      objectiveTitle: "目标",
+      objectiveCopy: "把焚毁率推到过关线。",
+      toolsTitle: "工具",
+      toolsCopy: "干草传火。TNT 炸开缺口。",
+      terrainTitle: "地形",
+      terrainCopy: "深水阻挡，湿地减弱火势，墙要用 TNT。",
+      structuresTitle: "建筑",
+      structuresCopy: "小屋 < 民居 < 大厅。",
+      controlsTitle: "操作",
+      controlsCopy: "拖动铺干草。单击放 TNT。重置可重来。",
+      scoringTitle: "计分",
+      scoringCopy: "烧得越多、浪费越少，评级越高。",
+      mapLabels: {
+        fireSource: "火",
+        hay: "干草",
+        tnt: "TNT",
+        hut: "小屋",
+        house: "民居",
+        hall: "大厅",
+        deepWater: "深水",
+        wetTerrain: "湿地",
+        wall: "墙"
+      }
     },
     levelSelect: {
       heading: "关卡选择",

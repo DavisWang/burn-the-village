@@ -54,6 +54,7 @@ describe("i18n runtime", () => {
 
     expect(getLocale()).toBe("zhHans");
     expect(getTranslations(getLocale()).menu.levelSelect).toBe("关卡选择");
+    expect(getTranslations(getLocale()).menu.howToPlay).toBe("玩法说明");
   });
 });
 
@@ -88,6 +89,22 @@ describe("localized helpers", () => {
     expect(buildNameEntryText("zhHans", "")).toContain("(空)");
     expect(buildBudgetEntryText("zhHans", "干草", "12")).toContain("预算");
     expect(buildBudgetEntryText("zhHans", "干草", "")).toContain("(空)");
+  });
+
+  it("provides localized how-to-play labels and copy", () => {
+    const english = getTranslations("en").howToPlay;
+    const chinese = getTranslations("zhHans").howToPlay;
+
+    expect(english.heading).toBe("HOW TO PLAY");
+    expect(english.mapLabels.fireSource).toBe("FIRE");
+    expect(english.controlsCopy).toBe("Drag hay. Click TNT. Reset to retry.");
+    expect(english.terrainCopy.length).toBeLessThanOrEqual(52);
+    expect(english.scoringCopy.length).toBeLessThanOrEqual(40);
+    expect(chinese.heading).toBe("玩法说明");
+    expect(chinese.mapLabels.wetTerrain).toBe("湿地");
+    expect(chinese.terrainCopy).toContain("TNT");
+    expect(chinese.controlsCopy.length).toBeLessThanOrEqual(24);
+    expect(chinese.scoringCopy.length).toBeLessThanOrEqual(20);
   });
 });
 

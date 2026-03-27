@@ -8,13 +8,16 @@ Burn the Village is intentionally split between pure game/data helpers and Phase
 flowchart LR
   A["main.ts bootstrap"] --> B["BootScene"]
   B --> C["MenuScene"]
-  C --> D["LevelSelectScene"]
-  C --> E["EditorScene"]
-  D --> F["GameScene"]
+  C --> D["HowToPlayScene"]
+  C --> E["LevelSelectScene"]
+  C --> F["EditorScene"]
+  D --> C
   D --> E
+  E --> G["GameScene"]
   E --> F
-  F --> D
-  F --> E
+  F --> G
+  G --> E
+  G --> F
 ```
 
 ## Module Boundaries
@@ -28,6 +31,7 @@ flowchart LR
 | Level authoring helpers | `src/game/editor-draft.ts`, `src/game/structureCatalog.ts` | Clone/edit a `LevelDefinition`, enforce occupancy and terrain rules, and create structure footprints |
 | Level file boundary | `src/game/level-io.ts` | Validate, parse, and serialize the versioned JSON file format |
 | Runtime session state | `src/game/session.ts` | In-memory catalog and editor draft for the current browser session |
+| How-to-play preview data | `src/game/how-to-play-preview.ts` | Fixed mechanic showcase state plus feature bounds used by the reference scene and its regression tests |
 | Shared layout math | `src/ui/layout.ts` | Canonical coordinates, slot geometry, overlay bounds, and spacing contracts that tests lock down |
 | Shared rendering | `src/ui/board-renderer.ts`, `src/ui/board-textures.ts`, `src/ui/fire-animation.ts` | Draw board cells, panel frames, flames, textures, and thumbnails |
 | Shared UI widgets | `src/ui/pixel-button.ts`, `src/ui/pixel-button-order.ts`, `src/ui/hud-content.ts`, `src/ui/typography.ts` | Buttons, localized HUD copy, rank display, and font loading/sizing |
@@ -51,6 +55,7 @@ flowchart LR
 | --- | --- | --- |
 | `BootScene` | Minimal startup handoff | Immediately transitions to `MenuScene` |
 | `MenuScene` | Splash/menu layout, locale toggle, and navigation | Uses shared frame/layout/button helpers plus the i18n runtime |
+| `HowToPlayScene` | Static reference layout, mechanic preview board, and tutorial navigation | Uses shared layout, i18n copy, preview-state helpers, and existing board rendering |
 | `LevelSelectScene` | Card rendering, scroll behavior, level import, and navigation | Uses session data, localized display names, thumbnail drawing, layout helpers, and DOM bridge |
 | `GameScene` | Active run coordination, placement input, HUD composition, and summary flow | Delegates rules to `simulation.ts` and visuals/layout/copy to shared helpers |
 | `EditorScene` | Draft editing UX, import/export/play-test flow, and editor overlays | Delegates draft mutations, validation, localized copy, and DOM input to helpers |
@@ -63,6 +68,7 @@ flowchart LR
 | Music, mute flow, or gameplay sound triggers | `src/audio/` and `src/ui/global-audio-toggle.ts` | Do not hand-roll scene-local audio state or duplicate unlock/mute behavior |
 | Locale state, translated copy, or built-in level display names | `src/i18n/index.ts` and the helper call sites that already accept `locale` | Do not reintroduce scene-local hard-coded English strings for shipped UI |
 | Spacing, centering, HUD slot positions, overlay bounds | `src/ui/layout.ts` | Do not scatter new magic numbers across scenes first |
+| How-to-play demo contents or label placement | `src/game/how-to-play-preview.ts`, `src/ui/layout.ts`, and the related tests | Do not hand-move one label in-scene without preserving the nearest-label contract |
 | Visual style of grass, roofs, flames, or board/frame drawing | `src/ui/board-renderer.ts`, `src/ui/board-textures.ts`, `src/ui/fire-animation.ts` | Do not mix rendering tweaks with game-rule changes unless necessary |
 | Button visuals or selected-state behavior | `src/ui/pixel-button.ts`, `src/ui/pixel-button-order.ts` | Do not patch one scene's button instance and leave the shared widget inconsistent |
 | JSON import/export contract | `src/game/level-io.ts` | Do not change exported shape ad hoc inside a scene |

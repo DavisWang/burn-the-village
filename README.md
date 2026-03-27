@@ -14,7 +14,8 @@ Burn the Village is a Phaser + TypeScript web game built around a fixed pixel-ar
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| Splash menu | Shipped | Canvas-rendered title screen with entry points to level select and editor. |
+| Splash menu | Shipped | Canvas-rendered title screen with entry points to level select, how-to-play, and editor. |
+| How-to-play screen | Shipped | Static reference screen with a labeled preview board, short localized mechanic copy, and direct navigation into the level list. |
 | Level select | Shipped | Built-in levels plus JSON import into the local session. |
 | Gameplay | Shipped | Fire spread, hay brush placement, TNT fuse/explosion, terrain obstacles (`deep water`, `marsh`, `walls`), score, rank, end-of-run summary, and gameplay SFX cues. |
 | Level editor | Shipped | In-canvas authoring for fires, structures, terrain obstacles, resource budgets, goal, import/export, and play test. |
@@ -35,6 +36,14 @@ Burn the Village is a Phaser + TypeScript web game built around a fixed pixel-ar
 | `npm run generate:levels -- 20` | Rebuild the current 20-level generated campaign and balance report |
 | `npm run preview` | Preview the production build locally |
 
+## GitHub Deploy
+
+| Step | Result |
+| --- | --- |
+| Push to `main` | Triggers [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) |
+| GitHub Actions build job | Runs `npm ci`, `npm test`, and `npm run build` before uploading `dist/` |
+| GitHub Pages deploy job | Publishes the built site after the build job succeeds |
+
 ## Documentation Map
 
 | Document | Purpose |
@@ -54,7 +63,7 @@ Burn the Village is a Phaser + TypeScript web game built around a fixed pixel-ar
 | `src/audio/` | Shared audio catalog, runtime state, and gameplay cue helpers |
 | `src/i18n/` | Runtime locale state, translations, built-in level display names, and localized helper copy |
 | `src/ui/` | Shared rendering, layout, typography, textures, buttons, and DOM bridge helpers |
-| `src/scenes/` | Phaser scene orchestration for menu, level select, gameplay, and editor |
+| `src/scenes/` | Phaser scene orchestration for menu, how-to-play, level select, gameplay, and editor |
 | `tests/` | Behavioral and regression specs for simulation, layout, rendering, animation, and typography |
 | `tasks/` | Working memory from prior implementation passes; useful raw history, but not the main long-lived docs |
 | `.github/workflows/` | GitHub Pages deployment automation |
@@ -65,3 +74,4 @@ Burn the Village is a Phaser + TypeScript web game built around a fixed pixel-ar
 - Keep shipped behavior and future ideas clearly separated in docs.
 - Treat `src/ui/layout.ts` and the related layout tests as contracts, not optional cleanup targets.
 - Treat typography, draw-order, and spacing helpers as hard-earned guardrails against repeated regressions.
+- Treat the how-to-play preview board as a documentation surface, not decoration: copy budget and label-to-feature proximity are both test-backed contracts now.

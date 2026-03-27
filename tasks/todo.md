@@ -2,6 +2,11 @@
 
 ## Plan
 
+- [x] Add a non-interactive `HowToPlayScene`, register it in the Phaser scene list, and wire a new `HOW TO PLAY` title-screen button plus `LEVEL SELECT` / `BACK` navigation from the reference screen.
+- [x] Extend shared localization and layout contracts for the new menu slot and the how-to-play screen so copy/geometry stay out of scene-local magic numbers.
+- [x] Build a fixed preview board and bottom/sidebar reference copy that cover fire source, hay, TNT, structures, terrain, controls, and scoring without changing gameplay rules.
+- [x] Update docs and regression coverage for the new menu flow, how-to-play layout, and localized tutorial copy, then verify with `npm test` and `npm run build`.
+
 - [x] Replace the hand-authored campaign templates with a seeded procedural preview generator that produces less linear fire/structure layouts and freeform obstacle shapes.
 - [x] Extend the deterministic solver/generator path to support variable completion goals between `50%` and `100%`, and use that goal-aware minimum solve cost in the difficulty calculation.
 - [x] Switch the generated built-in artifact from the current 50-level campaign to a 5-level preview pack for method review, with one generated report covering the new preview output.
@@ -54,6 +59,12 @@
 - [x] Verify the obstacle pass with `npm test` and `npm run build`, then update the durable repo docs/context.
 
 ## Review
+
+- Added a new `HowToPlayScene` reachable from the splash menu, reworked the menu layout to support three centered primary buttons, and kept the new reference screen inside the existing framed map/sidebar/HUD canvas shell.
+- Extended `src/i18n/index.ts` with localized `menu.howToPlay` plus a full `howToPlay` copy section, and added a preview-state helper that renders every shipped core mechanic on one labeled board without introducing a playable tutorial branch.
+- Added regression coverage for the new preview helper, how-to-play/menu layout contracts, and localized tutorial copy, then re-verified with `npm test` and `npm run build`.
+- Simplified the how-to-play copy so the sidebar and bottom bar fit the fixed panel cleanly, then added regression checks for the copy budget and board-label separation.
+- Repositioned the preview-board labels so each label is closest to its own construct instead of just “not overlapping,” and added a nearest-label regression to keep that teaching surface trustworthy.
 
 - Finished the 20-level generated campaign pass by keeping levels 1-13 stable, isolating the failing tail levels with a debug generator entry point, and only recreating levels 14-20 until each slot validated.
 - Relaxed campaign ordering validation so the first 10 tutorial levels can prioritize mechanic introduction while levels 11-20 still ramp upward as the actual final test band.

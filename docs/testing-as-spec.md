@@ -9,6 +9,7 @@ The tests in this repo are not just sanity checks. They are the executable versi
 | `tests/simulation.test.ts` | Failure gates, terrain-aware placement/explosion behavior, brush footprints, medal thresholds, reset seed behavior, and import/export validation | Protects gameplay rules and level file contracts |
 | `tests/audio.test.ts` | Audio runtime state, gameplay cue detection, and button click sound gating | Protects the lean audio layer without requiring browser playback in tests |
 | `tests/i18n.test.ts` | Locale runtime state, translated helper copy, built-in level names, and localized file-boundary errors | Protects the shipped EN/CN contract and keeps localized copy out of scene-local string drift |
+| `tests/how-to-play-preview.test.ts` | Mechanic coverage on the preview board plus label-to-feature separation and nearest-label behavior | Protects the onboarding/reference screen from becoming visually misleading |
 | `tests/ui-layout.test.ts` | Sidebar/HUD centering, overlay bounds, obstacle sidebar copy, progress meter layout, stat slot placement, and summary dialog fit | Protects pixel geometry and spacing decisions that repeatedly regressed |
 | `tests/ui-rendering.test.ts` | Grass/terrain/roof texture richness, terrain layer ordering, thumbnail rendering, and selected-button outline order/strength | Protects visual contracts that are easy to weaken during refactors |
 | `tests/fire-animation.test.ts` | Fire animation frame helper behavior | Keeps animation helpers stable without coupling everything to a scene |
@@ -24,6 +25,7 @@ The tests in this repo are not just sanity checks. They are the executable versi
 | Sidebar/HUD/editor geometry | `tests/ui-layout.test.ts` | Layout helpers are intentionally test-backed |
 | Button visuals or selection affordances | `tests/ui-rendering.test.ts` | Selected-state visibility is a known regression area |
 | Fonts or font sizes | `tests/typography.test.ts` and likely layout tests | Readability changes often have layout consequences |
+| How-to-play copy or map labels | `tests/how-to-play-preview.test.ts`, `tests/i18n.test.ts`, `tests/ui-layout.test.ts`, and likely docs | The reference screen now has explicit teaching/fit contracts, not just decorative copy |
 | Localized copy, locale state, or built-in level naming | `tests/i18n.test.ts`, `tests/ui-layout.test.ts`, and likely docs | The game now ships a real locale surface, not just hard-coded English labels |
 | Overlay layering | `tests/ui-layout.test.ts` and possibly `tests/ui-rendering.test.ts` | Modal and selected-state depth rules should stay explicit |
 | Mute toggle placement or audio runtime helpers | `tests/audio.test.ts`, `tests/ui-layout.test.ts`, and likely docs | Audio UX is now part of the fixed-panel contract, not an incidental extra |

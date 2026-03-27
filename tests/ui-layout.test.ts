@@ -6,6 +6,7 @@ import {
   SECTION_FRAME_BORDER,
   HUD_HEIGHT,
   HUD_ORIGIN,
+  MAP_ORIGIN,
   MAP_SIZE,
   SIDEBAR_ORIGIN,
   SIDEBAR_WIDTH,
@@ -30,6 +31,7 @@ import {
   getGameSidebarLayout,
   getGameSummaryDepths,
   getGameSummaryLayout,
+  getHowToPlayLayout,
   getLevelSelectGridLayout,
   getMenuLocaleToggleLayout,
   getMenuPanelLayout,
@@ -308,13 +310,17 @@ describe("level select layout", () => {
 });
 
 describe("menu layout", () => {
-  it("uses a full-panel menu layout without sidebar or hud sections", () => {
+  it("uses a full-panel menu layout with three centered primary buttons", () => {
     const layout = getMenuPanelLayout();
 
     expect(layout.hasSidebarFrame).toBe(false);
     expect(layout.hasHudFrame).toBe(false);
     expect(layout.contentWidth).toBeGreaterThan(MAP_SIZE);
     expect(layout.buttonX + layout.buttonWidth / 2).toBe(layout.titleCenterX);
+    expect(layout.buttonYs).toHaveLength(3);
+    expect(layout.buttonYs[1] - layout.buttonYs[0]).toBe(layout.buttonHeight + layout.buttonGap);
+    expect(layout.buttonYs[2] - layout.buttonYs[1]).toBe(layout.buttonHeight + layout.buttonGap);
+    expect(layout.buttonYs[2] + layout.buttonHeight).toBeLessThan(layout.footnoteY - 24);
     expect(layout.footnoteX).toBe(CANVAS_CENTER_X);
   });
 
@@ -332,5 +338,39 @@ describe("menu layout", () => {
     expect(toggle.segmentWidth).toBeGreaterThanOrEqual(50);
     expect(toggle.x).toBeGreaterThan(CANVAS_CENTER_X);
     expect(toggle.y + toggle.height).toBeGreaterThan(menu.footnoteY - 20);
+    expect(toggle.y).toBeGreaterThan(menu.buttonYs[2] + menu.buttonHeight);
+  });
+});
+
+describe("how to play layout", () => {
+  it("keeps sidebar copy and action buttons inside the sidebar frame", () => {
+    const layout = getHowToPlayLayout();
+    const leftMargin = layout.sidebarContentX - SIDEBAR_ORIGIN.x;
+    const rightMargin = SIDEBAR_ORIGIN.x + SIDEBAR_WIDTH - (layout.sidebarContentX + layout.sidebarContentWidth);
+
+    expect(leftMargin).toBe(rightMargin);
+    expect(layout.sidebarContentX + layout.sidebarContentWidth).toBeLessThanOrEqual(SIDEBAR_ORIGIN.x + SIDEBAR_WIDTH);
+    expect(layout.terrainBodyY).toBeLessThan(layout.levelSelectButtonY);
+    expect(layout.levelSelectButtonY - layout.terrainBodyY).toBeGreaterThanOrEqual(100);
+    expect(layout.backButtonY + layout.buttonHeight).toBeLessThanOrEqual(SIDEBAR_ORIGIN.y + MAP_SIZE);
+  });
+
+  it("keeps map labels inside the board area and hud reference columns inside the bottom panel", () => {
+    const layout = getHowToPlayLayout();
+
+    layout.mapLabels.forEach((label) => {
+      expect(label.x).toBeGreaterThanOrEqual(MAP_ORIGIN.x);
+      expect(label.x).toBeLessThanOrEqual(MAP_ORIGIN.x + MAP_SIZE);
+      expect(label.y).toBeGreaterThanOrEqual(MAP_ORIGIN.y);
+      expect(label.y).toBeLessThanOrEqual(MAP_ORIGIN.y + MAP_SIZE);
+    });
+
+    const lastColumn = layout.hudColumns[layout.hudColumns.length - 1];
+    expect(layout.hudColumns).toHaveLength(3);
+    expect(lastColumn).toBeDefined();
+    expect((lastColumn?.x ?? 0) + (lastColumn?.width ?? 0)).toBeLessThanOrEqual(SIDEBAR_ORIGIN.x + SIDEBAR_WIDTH);
+    expect(layout.hudColumns[0]?.bodyY).toBeGreaterThan(HUD_ORIGIN.y);
+    expect(layout.hudColumns[0]?.bodyY).toBeLessThanOrEqual(HUD_ORIGIN.y + HUD_HEIGHT);
+    expect(HUD_ORIGIN.y + HUD_HEIGHT - (layout.hudColumns[0]?.bodyY ?? 0)).toBeGreaterThanOrEqual(60);
   });
 });

@@ -42,6 +42,23 @@ export type ProgressMarker = {
   color: string;
 };
 
+export type LegendLabelLayout = {
+  key: string;
+  x: number;
+  y: number;
+  originX: number;
+  originY: number;
+  maxWidth: number;
+};
+
+export type HowToPlayHudColumnLayout = {
+  key: string;
+  x: number;
+  titleY: number;
+  bodyY: number;
+  width: number;
+};
+
 export function getGameProgressBarLayout() {
   const x = HUD_ORIGIN.x + 22;
   const y = HUD_ORIGIN.y + 68;
@@ -81,6 +98,13 @@ export function getMenuPanelLayout() {
   const contentHeight = PANEL_HEIGHT - PANEL_INNER_MARGIN_TOP - PANEL_INNER_MARGIN_BOTTOM;
   const buttonWidth = 280;
   const buttonHeight = 72;
+  const buttonGap = 18;
+  const buttonStartY = contentY + 278;
+  const buttonYs = [
+    buttonStartY,
+    buttonStartY + buttonHeight + buttonGap,
+    buttonStartY + (buttonHeight + buttonGap) * 2
+  ] as const;
 
   return {
     hasSidebarFrame: false,
@@ -94,8 +118,8 @@ export function getMenuPanelLayout() {
     buttonX: CANVAS_CENTER_X - buttonWidth / 2,
     buttonWidth,
     buttonHeight,
-    firstButtonY: contentY + 278,
-    secondButtonY: contentY + 368,
+    buttonGap,
+    buttonYs,
     footnoteX: CANVAS_CENTER_X,
     footnoteY: contentY + contentHeight - 24
   };
@@ -113,6 +137,72 @@ export function getMenuLocaleToggleLayout() {
     width,
     height,
     segmentWidth: width / 2
+  };
+}
+
+export function getHowToPlayLayout() {
+  const sidebarContentWidth = 188;
+  const sidebarContentX = SIDEBAR_ORIGIN.x + Math.floor((SIDEBAR_WIDTH - sidebarContentWidth) / 2);
+  const buttonHeight = 44;
+  const buttonGap = 12;
+  const bottomButtonY = SIDEBAR_ORIGIN.y + MAP_SIZE - 18 - buttonHeight;
+  const topButtonY = bottomButtonY - buttonGap - buttonHeight;
+  const hudLeftX = HUD_ORIGIN.x + 24;
+  const hudRightX = SIDEBAR_ORIGIN.x + SIDEBAR_WIDTH - 24;
+  const hudColumnGap = 20;
+  const hudColumnWidth = Math.floor((hudRightX - hudLeftX - hudColumnGap * 2) / 3);
+  const mapLabels: LegendLabelLayout[] = [
+    { key: "fireSource", x: MAP_ORIGIN.x + 58, y: MAP_ORIGIN.y + 70, originX: 0.5, originY: 1, maxWidth: 72 },
+    { key: "hay", x: MAP_ORIGIN.x + 140, y: MAP_ORIGIN.y + 66, originX: 0.5, originY: 1, maxWidth: 72 },
+    { key: "hut", x: MAP_ORIGIN.x + 200, y: MAP_ORIGIN.y + 38, originX: 0.5, originY: 1, maxWidth: 72 },
+    { key: "house", x: MAP_ORIGIN.x + 408, y: MAP_ORIGIN.y + 70, originX: 0.5, originY: 1, maxWidth: 84 },
+    { key: "deepWater", x: MAP_ORIGIN.x + 432, y: MAP_ORIGIN.y + 286, originX: 0.5, originY: 0, maxWidth: 92 },
+    { key: "tnt", x: MAP_ORIGIN.x + 266, y: MAP_ORIGIN.y + 264, originX: 1, originY: 0.5, maxWidth: 72 },
+    { key: "wall", x: MAP_ORIGIN.x + 354, y: MAP_ORIGIN.y + 264, originX: 0, originY: 0.5, maxWidth: 72 },
+    { key: "wetTerrain", x: MAP_ORIGIN.x + 104, y: MAP_ORIGIN.y + 442, originX: 0.5, originY: 0, maxWidth: 92 },
+    { key: "hall", x: MAP_ORIGIN.x + 264, y: MAP_ORIGIN.y + 436, originX: 0.5, originY: 0, maxWidth: 72 }
+  ];
+  const hudColumns: HowToPlayHudColumnLayout[] = [
+    {
+      key: "structures",
+      x: hudLeftX,
+      titleY: HUD_ORIGIN.y + 16,
+      bodyY: HUD_ORIGIN.y + 46,
+      width: hudColumnWidth
+    },
+    {
+      key: "controls",
+      x: hudLeftX + hudColumnWidth + hudColumnGap,
+      titleY: HUD_ORIGIN.y + 16,
+      bodyY: HUD_ORIGIN.y + 46,
+      width: hudColumnWidth
+    },
+    {
+      key: "scoring",
+      x: hudLeftX + (hudColumnWidth + hudColumnGap) * 2,
+      titleY: HUD_ORIGIN.y + 16,
+      bodyY: HUD_ORIGIN.y + 46,
+      width: hudColumnWidth
+    }
+  ];
+
+  return {
+    sidebarContentX,
+    sidebarContentWidth,
+    introY: SIDEBAR_ORIGIN.y + 12,
+    objectiveTitleY: SIDEBAR_ORIGIN.y + 88,
+    objectiveBodyY: SIDEBAR_ORIGIN.y + 114,
+    toolsTitleY: SIDEBAR_ORIGIN.y + 164,
+    toolsBodyY: SIDEBAR_ORIGIN.y + 190,
+    terrainTitleY: SIDEBAR_ORIGIN.y + 252,
+    terrainBodyY: SIDEBAR_ORIGIN.y + 278,
+    buttonX: sidebarContentX,
+    buttonWidth: sidebarContentWidth,
+    buttonHeight,
+    levelSelectButtonY: topButtonY,
+    backButtonY: bottomButtonY,
+    mapLabels,
+    hudColumns
   };
 }
 

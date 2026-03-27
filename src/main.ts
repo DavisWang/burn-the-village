@@ -14,6 +14,7 @@ import {
 import { BootScene } from "./scenes/BootScene";
 import { EditorScene } from "./scenes/EditorScene";
 import { GameScene } from "./scenes/GameScene";
+import { HowToPlayScene } from "./scenes/HowToPlayScene";
 import { LevelSelectScene } from "./scenes/LevelSelectScene";
 import { MenuScene } from "./scenes/MenuScene";
 import { waitForPixelFontReady } from "./ui/typography";
@@ -37,7 +38,7 @@ async function bootstrap() {
     pixelArt: true,
     antialias: false,
     roundPixels: true,
-    scene: [BootScene, MenuScene, LevelSelectScene, GameScene, EditorScene]
+    scene: [BootScene, MenuScene, HowToPlayScene, LevelSelectScene, GameScene, EditorScene]
   });
 
   window.__BTV_GAME__ = game;

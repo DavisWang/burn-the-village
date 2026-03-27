@@ -11,6 +11,8 @@ This file distills the raw history in `tasks/todo.md` and `tasks/lessons.md` int
 | Overlay dominance | Summary and editor popups were clipped or visually buried by regular controls | Explicit overlay/text/button depths and layout helpers | `src/ui/layout.ts`, scene overlay code, `tests/ui-layout.test.ts` |
 | Progress meter readability | Labels and markers were unclear or visually off-center | Shared progress layout, marker helpers, and tests for optical centering | `src/ui/layout.ts`, `tests/ui-layout.test.ts` |
 | Dense-screen typography | A font could look good on the splash screen but fail badly on cards, HUDs, or editor controls | Centralized font settings plus typography/layout regression coverage | `src/ui/typography.ts`, `tests/typography.test.ts`, `tests/ui-layout.test.ts` |
+| Tutorial/reference copy fit | Useful mechanic text still turned into clipped or crowded UI when the copy ran long for the fixed panel | Keep the copy short first, then tune layout, and lock the budget in tests | `src/i18n/index.ts`, `src/scenes/HowToPlayScene.ts`, `tests/i18n.test.ts`, `tests/ui-layout.test.ts` |
+| Tutorial label semantics | Labels stopped overlapping the art but still pointed at the wrong construct because they were closer to neighboring features | Preview feature bounds plus nearest-label regression tests | `src/game/how-to-play-preview.ts`, `src/ui/layout.ts`, `tests/how-to-play-preview.test.ts` |
 | One-off scene fixes | Quick per-scene tweaks solved one bug but left no general rule behind | Extract helpers first when a regression repeats | `src/ui/`, `src/game/`, and their tests |
 | Visible copy drift | New UI text was added during implementation without explicit product intent | Working rule: do not invent visible UX copy casually | Reflected in docs and prior lessons |
 | End-of-run state handling | Runs failed too early or summaries resolved at the wrong time | Dedicated simulation tests for outcome gates and TNT/fire edge cases | `src/game/simulation.ts`, `tests/simulation.test.ts` |
@@ -23,6 +25,8 @@ This file distills the raw history in `tasks/todo.md` and `tasks/lessons.md` int
 | Validate the densest surfaces first when changing fonts or font sizes | Menu screens are not representative enough |
 | Treat draw order as explicit state, not an accident of creation order | Important UI states need stable visibility guarantees |
 | Prefer changing a global helper over many scene-local offsets | It keeps the UI coherent and easier to reason about |
+| For fixed tutorial/reference surfaces, shorten copy before shrinking the whole UI | Smaller text is usually a smell that the surface is carrying too much content |
+| For labeled demo boards, require the intended label to be the nearest label to the intended feature | “No overlap” still allows misleading teaching UI |
 | If a new visible label or instruction appears, confirm it is intentional product copy | The project has already seen unwanted text creep into the UI |
 | Keep summary/editor overlays inside bounded layouts with tested button stacks | Modal regressions are easy to reintroduce during unrelated changes |
 

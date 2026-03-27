@@ -11,6 +11,7 @@ This file captures the "why" behind the current repo shape. Future edits should 
 | Treat tests as behavioral contracts for UI, not only logic | Many costly bugs were visual or spatial, not algorithmic | More helper extraction and more pure test targets | Do not delete a layout or rendering test because it looks cosmetic |
 | Keep scenes thin and helpers rich | The same simulation, drawing, and layout rules need to stay consistent across gameplay/editor/select flows | More files to understand at first | Do not pile new rule logic directly into scenes |
 | Centralize typography and wait for the font before boot | Readability was a real problem, and fallback/system fonts made the UI drift visually | Slight startup delay and font-management complexity | Do not remove font readiness or scatter font-family/size logic across scenes |
+| Keep the how-to-play screen as a short static reference, not a dense rules dump | The fixed panel only has so much room, and long copy quickly turns into clipping or unreadable noise | The reference screen stays intentionally compact and non-exhaustive | Do not solve a layout problem there by stuffing in more text; shorten or restructure the content first |
 | Use explicit depth/layout helpers for overlays and selected states | Creation order was not reliable enough to protect modals and outlines during refactors | Slightly more ceremony around draw order | Do not rely on object creation order when the UI state must stay visually dominant |
 | Keep session state in-memory for now | It keeps the editor/select/game loop simple while the product is still evolving | Imported/custom levels disappear on refresh | Do not describe this as persistent storage in docs or UX copy |
 | Version the exported level file shape | Imported levels are the clearest future extension point, so the boundary should stay explicit | Requires some validation and migration discipline later | Do not silently change the JSON format without versioning or documenting it |
@@ -32,6 +33,7 @@ This file captures the "why" behind the current repo shape. Future edits should 
 | Assuming geometric center equals visual center | Pixel fonts and framed UI often needed optical, not mathematical, centering |
 | Relying on creation order for overlays/outlines | Refactors quietly changed draw stacking and buried important UI states |
 | Swapping fonts based on splash-screen appearance alone | Dense gameplay/editor surfaces exposed readability failures that the title screen hid |
+| Treating tutorial labels as “good enough” once they stopped overlapping | Labels can still be misleading if they are closer to the wrong construct than the right one |
 
 ## Decision Log
 
@@ -43,6 +45,7 @@ Use this section as the ongoing place to append future durable context. Keep ent
 | UI stabilization pass | Moved layout contracts into `src/ui/layout.ts` and added layout tests | Sidebar/HUD/editor geometry was regressing repeatedly | Scene-local spacing constants | Change shared layout helpers first, then update tests intentionally |
 | Typography/readability pass | Centralized pixel font settings and delayed boot until fonts were ready | Retro look was not enough; dense screens still had to be readable | Ad hoc font stacks and fallback flashes | Test dense surfaces before declaring a font change done |
 | Overlay/draw-order fixes | Added explicit overlay depths and selected-outline ordering rules | Important states were being visually buried | Implicit creation order assumptions | If a modal or selected state matters, encode its depth contract explicitly |
+| 2026-03 how-to-play pass | Added a static reference scene with preview-state helpers plus test-backed copy-fit and nearest-label contracts | The menu needed an onboarding path, but the fixed canvas could not tolerate loose tutorial text or ambiguous labels | Ad hoc scene-local copy and label nudges | Keep tutorial copy short and preserve the label-to-feature proximity tests when editing the board |
 | 2026-03 durable docs pass | Added root/docs knowledge base and made code/tests explicit canon | Important context was trapped in prompt history and task logs | Chronological task notes as the main memory source | Append future rationale here instead of relying on chat history alone |
 
 ## Suggested Entry Format

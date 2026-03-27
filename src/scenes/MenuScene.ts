@@ -59,7 +59,7 @@ export class MenuScene extends Phaser.Scene {
     new PixelButton({
       scene: this,
       x: layout.buttonX,
-      y: layout.firstButtonY,
+      y: layout.buttonYs[0],
       width: layout.buttonWidth,
       height: layout.buttonHeight,
       label: strings.menu.levelSelect,
@@ -71,7 +71,19 @@ export class MenuScene extends Phaser.Scene {
     new PixelButton({
       scene: this,
       x: layout.buttonX,
-      y: layout.secondButtonY,
+      y: layout.buttonYs[1],
+      width: layout.buttonWidth,
+      height: layout.buttonHeight,
+      label: strings.menu.howToPlay,
+      locale,
+      fontSize: "18px",
+      onClick: () => this.scene.start("HowToPlayScene")
+    });
+
+    new PixelButton({
+      scene: this,
+      x: layout.buttonX,
+      y: layout.buttonYs[2],
       width: layout.buttonWidth,
       height: layout.buttonHeight,
       label: strings.menu.levelEditor,
