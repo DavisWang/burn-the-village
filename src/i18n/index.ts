@@ -147,7 +147,7 @@ const TRANSLATIONS = {
       levelSelect: "LEVEL SELECT",
       howToPlay: "HOW TO PLAY",
       levelEditor: "LEVEL EDITOR",
-      byline: "By Davis Wang"
+      byline: "by Pwner Studios"
     },
     howToPlay: {
       heading: "HOW TO PLAY",
@@ -281,7 +281,7 @@ const TRANSLATIONS = {
       levelSelect: "关卡选择",
       howToPlay: "玩法说明",
       levelEditor: "关卡编辑器",
-      byline: "Davis Wang 制作"
+      byline: "Pwner Studios 制作"
     },
     howToPlay: {
       heading: "玩法说明",
